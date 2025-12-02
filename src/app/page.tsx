@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "@/components/ui/navigation-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { CartSheet } from "@/components/cart/CartSheet";
+import { useCartStore } from "@/store/cartStore";
+import { menuItems as fullMenuItems } from "@/data/menu";
 
 // ------------------------------------
 // REUSABLE HELPERS
@@ -45,31 +48,6 @@ const galleryImages = [
   { type: "image", label: "Refreshing Drinks" },
 ];
 
-const menuItems = [
-  {
-    title: "Premium Sirloin Steak",
-    description:
-      "Perfectly aged, char-grilled to your preference, served with roasted vegetables and signature sauce.",
-    badge: "Best Seller",
-    icon: Flame,
-    tag: "Signature",
-  },
-  {
-    title: "Striploin Perfection",
-    description:
-      "Tender, juicy cuts expertly seasoned and grilled. A favorite among steak and wine enthusiasts.",
-    icon: Star,
-    tag: "Premium",
-  },
-  {
-    title: "Signature Chicken",
-    description:
-      "Perfectly seasoned and pan-seared chicken with bold flavors, lime, and aromatic spices.",
-    icon: Utensils,
-    tag: "Popular",
-  },
-];
-
 const atmosphereFeatures = [
   {
     icon: Lightbulb,
@@ -93,10 +71,48 @@ const atmosphereFeatures = [
 
 const quickLinks = ["Home", "About Us", "Menu", "Gallery", "Reviews"];
 
+// Map icon names to actual components
+const iconMap = {
+  Flame: Flame,
+  Star: Star,
+  Utensils: Utensils,
+} as const;
+
+// Map badge types to display text
+const badgeMap = {
+  bestseller: "Best Seller",
+  premium: "Premium",
+  popular: "Popular",
+} as const;
+
+const badgeColorMap = {
+  bestseller: "bg-green-600",
+  premium: "bg-amber-600",
+  popular: "bg-blue-600",
+} as const;
+
 // ------------------------------------
 // MAIN COMPONENT
 // ------------------------------------
 export default function RestaurantWebsite() {
+  const { addItem } = useCartStore();
+
+  const handleAddToCart = (item: typeof fullMenuItems[0]) => {
+    addItem({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image || "",
+      qty: 1,
+    });
+  };
+
+  const displayMenuItems = fullMenuItems.map((item) => ({
+    ...item,
+    icon: iconMap[item.id === 'sirloin' ? 'Flame' : item.id === 'striploin' ? 'Star' : 'Utensils'],
+    tag: item.category === 'steaks' ? 'Signature' : item.category === 'chicken' ? 'Popular' : 'Premium',
+  }));
+
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans">
 
@@ -118,7 +134,6 @@ export default function RestaurantWebsite() {
           <div className="hidden md:flex items-center gap-6">
             <NavigationMenu>
               <NavigationMenuList className="gap-6">
-
                 {["about", "menu", "gallery"].map((id) => (
                   <NavigationMenuItem key={id}>
                     <NavigationMenuLink
@@ -133,54 +148,57 @@ export default function RestaurantWebsite() {
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 ))}
-
-                <NavigationMenuItem>
-                  <ReservationDialog>
-                    <Button className="bg-red-800 hover:bg-red-700">
-                      Reserve Now
-                    </Button>
-                  </ReservationDialog>
-                </NavigationMenuItem>
-
               </NavigationMenuList>
             </NavigationMenu>
+
+            {/* Cart Button */}
+            <CartSheet />
+            
+            {/* Reservation Button */}
+            <ReservationDialog>
+              <Button className="bg-red-800 hover:bg-red-700">
+                Reserve Now
+              </Button>
+            </ReservationDialog>
           </div>
 
           {/* Mobile */}
-          <Sheet>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
+          <div className="flex items-center gap-3 md:hidden">
+            <CartSheet />
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
 
-            <SheetContent side="right" className="bg-neutral-900 border-l-neutral-800">
-              <div className="flex flex-col gap-6 mt-8">
-                {["about", "menu", "gallery"].map((id) => (
-                  <a
-                    key={id}
-                    href={`#${id}`}
-                    className="text-lg hover:text-amber-600 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo(id);
-                    }}
-                  >
-                    {id.charAt(0).toUpperCase() + id.slice(1)}
-                  </a>
-                ))}
+              <SheetContent side="right" className="bg-neutral-900 border-l-neutral-800">
+                <div className="flex flex-col gap-6 mt-8">
+                  {["about", "menu", "gallery"].map((id) => (
+                    <a
+                      key={id}
+                      href={`#${id}`}
+                      className="text-lg hover:text-amber-600 transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollTo(id);
+                      }}
+                    >
+                      {id.charAt(0).toUpperCase() + id.slice(1)}
+                    </a>
+                  ))}
 
-                <Separator className="bg-neutral-800" />
+                  <Separator className="bg-neutral-800" />
 
-                <ReservationDialog>
-                  <Button className="bg-red-800 hover:bg-red-700 w-full">
-                    Reserve Table
-                  </Button>
-                </ReservationDialog>
-              </div>
-            </SheetContent>
-          </Sheet>
-
+                  <ReservationDialog>
+                    <Button className="bg-red-800 hover:bg-red-700 w-full">
+                      Reserve Table
+                    </Button>
+                  </ReservationDialog>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </nav>
 
@@ -247,14 +265,14 @@ export default function RestaurantWebsite() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            {menuItems.map((item, index) => (
+            {displayMenuItems.map((item) => (
               <Card 
-                key={index} 
+                key={item.id}
                 className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2"
               >
                 {item.badge && (
-                  <div className="absolute top-4 right-4 z-10 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    {item.badge}
+                  <div className={`absolute top-4 right-4 z-10 ${badgeColorMap[item.badge]} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
+                    {badgeMap[item.badge]}
                   </div>
                 )}
                 <CardHeader>
@@ -263,13 +281,22 @@ export default function RestaurantWebsite() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <CardTitle className="text-2xl mb-3">{item.title}</CardTitle>
+                  <CardTitle className="text-2xl mb-2">{item.name}</CardTitle>
+                  <p className="text-amber-600 font-bold text-lg mb-3">BDT {item.price}</p>
                   <CardDescription className="text-neutral-400 mb-4">
                     {item.description}
                   </CardDescription>
-                  <div className="flex items-center gap-2">
-                    <item.icon className="h-5 w-5 text-amber-600" />
-                    <span className="font-semibold">{item.tag}</span>
+                  <div className="flex items-center justify-between mt-6">
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-5 w-5 text-amber-600" />
+                      <span className="font-semibold">{item.tag}</span>
+                    </div>
+                    <Button 
+                      className="bg-amber-700 hover:bg-amber-600"
+                      onClick={() => handleAddToCart(item)}
+                    >
+                      Add to Cart
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
