@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  deliveryAddress String   // ADD THIS
+  items          Json
+  subtotal       Float     // ADD THIS
+  tax            Float     // ADD THIS
+  total          Float
+  paymentMethod  String    @default("cash")  // ADD THIS
+  notes          String?   // ADD THIS
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  date      DateTime
+  time      String
+  guests    Int
+  message   String?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
