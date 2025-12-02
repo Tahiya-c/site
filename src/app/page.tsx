@@ -1,113 +1,243 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronRight, Phone, Mail, MapPin, Facebook, Instagram, MessageCircle, Star, Flame, Utensils, Users, Lightbulb, Sofa, Calendar, CheckCircle, ArrowRight } from 'lucide-react';
+import React from "react";
+import {
+  ChevronRight, Phone, Mail, MapPin, Facebook, Instagram, MessageCircle,
+  Star, Flame, Utensils, Users, Lightbulb, Sofa, Calendar, CheckCircle, ArrowRight, Menu,
+} from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "@/components/ui/navigation-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+// ------------------------------------
+// REUSABLE HELPERS
+// ------------------------------------
+const scrollTo = (id: string) =>
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+const ReservationDialog = ({ children }: { children: React.ReactNode }) => (
+  <Dialog>
+    <DialogTrigger asChild>{children}</DialogTrigger>
+    <DialogContent className="bg-neutral-900 border-neutral-800">
+      <DialogHeader>
+        <DialogTitle className="text-2xl text-amber-600">Make a Reservation</DialogTitle>
+        <DialogDescription className="text-neutral-400">
+          Book your table at Club Grille for an unforgettable dining experience.
+        </DialogDescription>
+      </DialogHeader>
+      <p className="text-neutral-300">Reservation form would go here...</p>
+    </DialogContent>
+  </Dialog>
+);
+
+// ------------------------------------
+// STATIC DATA (outside component)
+// ------------------------------------
+const galleryImages = [
+  { type: "image", label: "Meat Heaven - BDT 1830" },
+  { type: "image", label: "Signature Platter" },
+  { type: "video", label: "0:07" },
+  { type: "image", label: "Grilled Specialties" },
+  { type: "image", label: "Refreshing Drinks" },
+];
+
+const menuItems = [
+  {
+    title: "Premium Sirloin Steak",
+    description:
+      "Perfectly aged, char-grilled to your preference, served with roasted vegetables and signature sauce.",
+    badge: "Best Seller",
+    icon: Flame,
+    tag: "Signature",
+  },
+  {
+    title: "Striploin Perfection",
+    description:
+      "Tender, juicy cuts expertly seasoned and grilled. A favorite among steak and wine enthusiasts.",
+    icon: Star,
+    tag: "Premium",
+  },
+  {
+    title: "Signature Chicken",
+    description:
+      "Perfectly seasoned and pan-seared chicken with bold flavors, lime, and aromatic spices.",
+    icon: Utensils,
+    tag: "Popular",
+  },
+];
+
+const atmosphereFeatures = [
+  {
+    icon: Lightbulb,
+    title: "Warm Ambient Lighting",
+    description:
+      "Soft Edison bulbs and indirect lighting create an inviting, cozy atmosphere perfect for any occasion.",
+  },
+  {
+    icon: Sofa,
+    title: "Premium Comfort",
+    description:
+      "Plush leather seating and thoughtfully designed spaces ensure your complete comfort.",
+  },
+  {
+    icon: Users,
+    title: "Perfect for Groups",
+    description:
+      "Tables for two or spacious seating for celebrations with friends and family.",
+  },
+];
+
+const quickLinks = ["Home", "About Us", "Menu", "Gallery", "Reviews"];
+
+// ------------------------------------
+// MAIN COMPONENT
+// ------------------------------------
 export default function RestaurantWebsite() {
-  const [activeImage, setActiveImage] = useState(0);
-  
-  const galleryImages = [
-    { type: 'image', label: 'Meat Heaven - BDT 1830' },
-    { type: 'image', label: 'Signature Platter' },
-    { type: 'video', label: '0:07', thumb: 'Cooking Video' },
-    { type: 'image', label: 'Grilled Specialties' },
-    { type: 'image', label: 'Refreshing Drinks' },
-  ];
-
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans">
-      {/* Navigation */}
+
+      {/* NAVIGATION */}
       <nav className="fixed top-0 w-full bg-neutral-900/95 backdrop-blur-sm z-50 border-b border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-12 h-12 bg-amber-700 rounded-full flex items-center justify-center">
               <Utensils className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold">CLUB <span className="text-amber-600">GRILLE</span></span>
+            <span className="text-2xl font-bold">
+              CLUB <span className="text-amber-600">GRILLE</span>
+            </span>
           </div>
-          <div className="hidden md:flex gap-8 items-center">
-            <a href="#about" className="hover:text-amber-600 transition-colors font-medium">About Us</a>
-            <a href="#menu" className="hover:text-amber-600 transition-colors font-medium">Menu</a>
-            <a href="#gallery" className="hover:text-amber-600 transition-colors font-medium">Gallery</a>
-            <a href="#reservations" className="hover:text-amber-600 transition-colors font-medium">Reservations</a>
-            <button className="bg-red-800 hover:bg-red-700 px-6 py-2.5 rounded-md font-semibold transition-colors">
-              Reserve Your Table Now
-            </button>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6">
+            <NavigationMenu>
+              <NavigationMenuList className="gap-6">
+
+                {["about", "menu", "gallery"].map((id) => (
+                  <NavigationMenuItem key={id}>
+                    <NavigationMenuLink
+                      href={`#${id}`}
+                      className="hover:text-amber-600 transition-colors font-medium"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollTo(id);
+                      }}
+                    >
+                      {id.charAt(0).toUpperCase() + id.slice(1)}
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                ))}
+
+                <NavigationMenuItem>
+                  <ReservationDialog>
+                    <Button className="bg-red-800 hover:bg-red-700">
+                      Reserve Now
+                    </Button>
+                  </ReservationDialog>
+                </NavigationMenuItem>
+
+              </NavigationMenuList>
+            </NavigationMenu>
           </div>
+
+          {/* Mobile */}
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="right" className="bg-neutral-900 border-l-neutral-800">
+              <div className="flex flex-col gap-6 mt-8">
+                {["about", "menu", "gallery"].map((id) => (
+                  <a
+                    key={id}
+                    href={`#${id}`}
+                    className="text-lg hover:text-amber-600 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo(id);
+                    }}
+                  >
+                    {id.charAt(0).toUpperCase() + id.slice(1)}
+                  </a>
+                ))}
+
+                <Separator className="bg-neutral-800" />
+
+                <ReservationDialog>
+                  <Button className="bg-red-800 hover:bg-red-700 w-full">
+                    Reserve Table
+                  </Button>
+                </ReservationDialog>
+              </div>
+            </SheetContent>
+          </Sheet>
+
         </div>
       </nav>
 
-      {/* Hero Section - Full Width with Background Image */}
+      {/* HERO SECTION */}
       <section id="home" className="relative min-h-screen flex items-center justify-start pt-20">
-        {/* Background Image Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-0"></div>
-        
-        {/* Background Pattern/Image Simulation */}
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-amber-950/30 to-neutral-800 z-0">
-          <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] bg-repeat"></div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-amber-950/30 to-neutral-800 z-0"></div>
 
-        {/* Simulated Steak Image on Right */}
-        <div className="absolute right-0 top-0 bottom-0 w-1/2 hidden lg:flex items-center justify-center">
-          <div className="relative w-full h-full flex items-center justify-center">
-            {/* Steak Illustration */}
-            <div className="relative">
-              <div className="w-96 h-96 bg-gradient-to-br from-amber-800 via-amber-700 to-amber-900 rounded-full blur-3xl opacity-40"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Flame className="w-64 h-64 text-amber-600/30" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-32 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
           <div className="max-w-2xl">
-            <p className="text-amber-600 uppercase tracking-wider text-sm font-bold mb-4 flex items-center gap-2">
-              <span className="w-12 h-0.5 bg-amber-600"></span>
-              UPSCALE STEAKHOUSE IN CHATTOGRAM
-            </p>
+            <div className="flex items-center gap-2 mb-4">
+              <Separator className="w-12 bg-amber-600" />
+              <p className="text-amber-600 uppercase tracking-wider text-sm font-bold">
+                UPSCALE STEAKHOUSE IN CHATTOGRAM
+              </p>
+            </div>
             
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Where Steaks Meet<br />
               <span className="text-amber-600">Style</span>
             </h1>
             
-            <p className="text-xl text-neutral-300 mb-10 leading-relaxed max-w-xl">
+            <p className="text-lg sm:text-xl text-neutral-300 mb-10 leading-relaxed max-w-xl">
               Experience premium cuts and cozy industrial ambiance. Perfectly grilled steaks, warm lighting, and a modern atmosphere that transforms every meal into a memorable occasion.
             </p>
             
-            <div className="flex gap-4 flex-wrap mb-8">
-              <button className="bg-red-800 hover:bg-red-700 px-8 py-4 rounded-md font-semibold text-lg transition-all transform hover:scale-105 flex items-center gap-2 shadow-xl">
-                Reserve Your Table <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="bg-amber-700/20 border-2 border-amber-700 hover:bg-amber-700 px-8 py-4 rounded-md font-semibold text-lg transition-all transform hover:scale-105">
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <ReservationDialog>
+                <Button size="lg" className="bg-red-800 hover:bg-red-700 text-lg px-8 py-6">
+                  Reserve Your Table <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </ReservationDialog>
+              
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-amber-700 text-amber-700 hover:bg-amber-700/20 text-lg px-8 py-6"
+                onClick={() => scrollTo("menu")}
+              >
                 Explore Our Menu
-              </button>
+              </Button>
             </div>
 
             <div className="flex items-center gap-3 text-neutral-400">
-              <CheckCircle className="w-5 h-5 text-amber-600" />
+              <CheckCircle className="h-5 w-5 text-amber-600" />
               <span>Walk-ins welcome • Easy online reservations</span>
             </div>
           </div>
         </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="flex flex-col items-center gap-2 animate-bounce">
-            <span className="text-sm text-neutral-400">Scroll to explore</span>
-            <ChevronRight className="w-6 h-6 text-amber-600 rotate-90" />
-          </div>
-        </div>
       </section>
 
-      {/* Signature Offerings Section */}
-      <section id="menu" className="py-24 bg-gradient-to-b from-neutral-900 to-red-950">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+      {/* MENU SECTION */}
+      <section id="menu" className="py-16 sm:py-24 bg-gradient-to-b from-neutral-900 to-red-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
             <p className="text-amber-600 uppercase tracking-wider text-sm font-semibold mb-3">SIGNATURE OFFERINGS</p>
-            <h2 className="text-5xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
               Perfectly Grilled, <span className="text-amber-600">Unforgettable</span>
             </h2>
             <p className="text-neutral-300 text-lg max-w-3xl mx-auto">
@@ -116,83 +246,55 @@ export default function RestaurantWebsite() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Premium Sirloin Steak */}
-            <div className="bg-neutral-800 rounded-lg overflow-hidden shadow-2xl hover:shadow-amber-900/20 transition-all duration-300 transform hover:-translate-y-2 relative group">
-              <div className="absolute top-4 right-4 z-10 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Best Seller
-              </div>
-              <div className="h-64 bg-gradient-to-br from-amber-900 to-neutral-900 flex items-center justify-center overflow-hidden">
-                <div className="text-center p-8">
-                  <Flame className="w-24 h-24 text-amber-600 mx-auto opacity-50 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-2xl font-bold mb-3">Premium Sirloin Steak</h3>
-                <p className="text-neutral-400 mb-4">
-                  Perfectly aged, char-grilled to your preference, served with roasted vegetables and signature sauce.
-                </p>
-                <div className="flex items-center gap-2 text-red-500">
-                  <Flame className="w-5 h-5" />
-                  <span className="font-semibold">Signature</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Striploin Perfection */}
-            <div className="bg-neutral-800 rounded-lg overflow-hidden shadow-2xl hover:shadow-amber-900/20 transition-all duration-300 transform hover:-translate-y-2 group">
-              <div className="h-64 bg-gradient-to-br from-red-900 to-neutral-900 flex items-center justify-center overflow-hidden">
-                <div className="text-center p-8">
-                  <Star className="w-24 h-24 text-amber-600 mx-auto opacity-50 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-2xl font-bold mb-3">Striploin Perfection</h3>
-                <p className="text-neutral-400 mb-4">
-                  Tender, juicy cuts expertly seasoned and grilled. A favorite among steak and wine enthusiasts.
-                </p>
-                <div className="flex items-center gap-2 text-amber-600">
-                  <Star className="w-5 h-5" />
-                  <span className="font-semibold">Premium</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Signature Chicken */}
-            <div className="bg-neutral-800 rounded-lg overflow-hidden shadow-2xl hover:shadow-amber-900/20 transition-all duration-300 transform hover:-translate-y-2 group">
-              <div className="h-64 bg-gradient-to-br from-amber-900 to-neutral-900 flex items-center justify-center overflow-hidden">
-                <div className="text-center p-8">
-                  <Utensils className="w-24 h-24 text-amber-600 mx-auto opacity-50 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-2xl font-bold mb-3">Signature Chicken</h3>
-                <p className="text-neutral-400 mb-4">
-                  Perfectly seasoned and pan-seared chicken with bold flavors, lime, and aromatic spices.
-                </p>
-                <div className="flex items-center gap-2 text-green-500">
-                  <Utensils className="w-5 h-5" />
-                  <span className="font-semibold">Popular</span>
-                </div>
-              </div>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+            {menuItems.map((item, index) => (
+              <Card 
+                key={index} 
+                className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2"
+              >
+                {item.badge && (
+                  <div className="absolute top-4 right-4 z-10 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    {item.badge}
+                  </div>
+                )}
+                <CardHeader>
+                  <div className="h-48 sm:h-64 bg-gradient-to-br from-amber-900 to-neutral-900 rounded-t-lg flex items-center justify-center">
+                    <item.icon className="h-24 w-24 text-amber-600 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <CardTitle className="text-2xl mb-3">{item.title}</CardTitle>
+                  <CardDescription className="text-neutral-400 mb-4">
+                    {item.description}
+                  </CardDescription>
+                  <div className="flex items-center gap-2">
+                    <item.icon className="h-5 w-5 text-amber-600" />
+                    <span className="font-semibold">{item.tag}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          <div className="text-center mt-12">
-            <button className="bg-red-800 hover:bg-red-700 px-8 py-4 rounded-md font-semibold text-lg transition-colors inline-flex items-center gap-2">
-              View Full Menu <ChevronRight className="w-5 h-5" />
-            </button>
+          <div className="text-center mt-8 sm:mt-12">
+            <Button 
+              size="lg" 
+              className="bg-red-800 hover:bg-red-700 px-8 py-6"
+              onClick={() => scrollTo("menu")}
+            >
+              View Full Menu <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Atmosphere Section */}
-      <section id="about" className="py-24 bg-neutral-800">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      {/* ATMOSPHERE SECTION */}
+      <section id="about" className="py-16 sm:py-24 bg-neutral-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <p className="text-amber-600 uppercase tracking-wider text-sm font-semibold mb-3">MODERN INDUSTRIAL ELEGANCE</p>
-              <h2 className="text-5xl font-bold mb-6">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
                 An Atmosphere That <span className="text-amber-600">Captivates</span>
               </h2>
               <p className="text-neutral-300 text-lg mb-8">
@@ -202,71 +304,54 @@ export default function RestaurantWebsite() {
               </p>
 
               <div className="space-y-6 mb-8">
-                <div className="flex gap-4 items-start">
-                  <div className="bg-red-800 p-3 rounded-full flex-shrink-0">
-                    <Lightbulb className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl mb-2">Warm Ambient Lighting</h3>
-                    <p className="text-neutral-400">
-                      Soft Edison bulbs and indirect lighting create an inviting, cozy atmosphere perfect for any occasion.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 items-start">
-                  <div className="bg-red-800 p-3 rounded-full flex-shrink-0">
-                    <Sofa className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl mb-2">Premium Comfort</h3>
-                    <p className="text-neutral-400">
-                      Plush leather seating and thoughtfully designed spaces ensure your complete comfort.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 items-start">
-                  <div className="bg-red-800 p-3 rounded-full flex-shrink-0">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl mb-2">Perfect for Groups</h3>
-                    <p className="text-neutral-400">
-                      Intimate tables for two or spacious seating for celebrations with friends and family.
-                    </p>
-                  </div>
-                </div>
+                {atmosphereFeatures.map((feature, index) => (
+                  <Card key={index} className="bg-neutral-700/50 border-neutral-700">
+                    <CardContent className="p-6">
+                      <div className="flex gap-4 items-start">
+                        <div className="bg-red-800 p-3 rounded-full flex-shrink-0">
+                          <feature.icon className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xl mb-2">{feature.title}</h3>
+                          <p className="text-neutral-400">{feature.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
-              <button className="bg-amber-700 hover:bg-amber-600 px-8 py-3 rounded-md font-semibold transition-colors inline-flex items-center gap-2">
-                Discover Our Story <ChevronRight className="w-5 h-5" />
-              </button>
+              <Button 
+                className="bg-amber-700 hover:bg-amber-600 px-8 py-6"
+                onClick={() => scrollTo("about")}
+              >
+                Discover Our Story <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
             </div>
 
             <div className="relative">
-              <div className="bg-gradient-to-br from-amber-900 to-neutral-900 rounded-lg h-[600px] flex items-center justify-center overflow-hidden shadow-2xl">
-                <div className="text-center p-12">
+              <Card className="bg-gradient-to-br from-amber-900 to-neutral-900 border-0 h-[400px] sm:h-[600px] flex items-center justify-center">
+                <CardContent className="text-center p-8 sm:p-12">
                   <div className="mb-6">
                     <div className="inline-flex items-center gap-3 bg-red-900/80 px-6 py-3 rounded-full">
-                      <Star className="w-6 h-6 text-amber-600" />
+                      <Star className="h-6 w-6 text-amber-600" />
                       <span className="text-3xl font-bold">5★</span>
                     </div>
                   </div>
                   <p className="text-xl font-semibold">Highly Rated</p>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Gallery Section */}
-      <section id="gallery" className="py-24 bg-neutral-900">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+      {/* GALLERY SECTION */}
+      <section id="gallery" className="py-16 sm:py-24 bg-neutral-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
             <p className="text-amber-600 uppercase tracking-wider text-sm font-semibold mb-3">INSTAGRAM GALLERY</p>
-            <h2 className="text-5xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
               Feast Your <span className="text-amber-600">Eyes</span>
             </h2>
             <p className="text-neutral-300 text-lg">
@@ -274,95 +359,100 @@ export default function RestaurantWebsite() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {galleryImages.map((item, index) => (
-              <div 
+              <Card 
                 key={index} 
-                className="aspect-square bg-gradient-to-br from-amber-900 to-neutral-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 relative group"
+                className="group aspect-square bg-gradient-to-br from-amber-900 to-neutral-900 border-0 cursor-pointer hover:scale-105 transition-transform duration-300"
               >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {item.type === 'video' ? (
+                <CardContent className="p-4 h-full flex items-center justify-center">
+                  {item.type === "video" ? (
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-2 mx-auto">
-                        <div className="w-0 h-0 border-t-8 border-t-transparent border-l-12 border-l-white border-b-8 border-b-transparent ml-1"></div>
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-2 mx-auto">
+                        <div className="w-0 h-0 border-t-4 sm:border-t-8 border-t-transparent border-l-6 sm:border-l-12 border-l-white border-b-4 sm:border-b-8 border-b-transparent ml-1"></div>
                       </div>
-                      <span className="text-sm font-semibold bg-black/50 px-3 py-1 rounded-full">{item.label}</span>
+                      <span className="text-xs sm:text-sm font-semibold bg-black/50 px-2 sm:px-3 py-1 rounded-full">{item.label}</span>
                     </div>
                   ) : (
                     <div className="text-center p-4">
-                      <Utensils className="w-12 h-12 text-amber-600 mx-auto opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <Utensils className="h-8 w-8 sm:h-12 sm:w-12 text-amber-600 mx-auto opacity-50 group-hover:opacity-100 transition-opacity" />
                       <p className="text-xs mt-2 opacity-0 group-hover:opacity-100 transition-opacity">{item.label}</p>
                     </div>
                   )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-8 sm:mt-12 text-center">
             <p className="text-neutral-400 mb-4">Share your experience with #ClubGrille</p>
-            <button className="text-amber-600 font-semibold hover:text-amber-500 transition-colors inline-flex items-center gap-2">
-              View More on Instagram <ChevronRight className="w-5 h-5" />
-            </button>
+            <Button 
+              variant="link" 
+              className="text-amber-600 font-semibold hover:text-amber-500"
+              onClick={() => scrollTo("gallery")}
+            >
+              View More on Instagram <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section id="reservations" className="py-24 bg-gradient-to-br from-neutral-800 via-neutral-900 to-red-950 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] bg-repeat"></div>
-        </div>
-        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-          <div className="inline-block mb-6">
-            <div className="w-20 h-20 bg-amber-700 rounded-full flex items-center justify-center mx-auto">
-              <Utensils className="w-10 h-10" />
-            </div>
-          </div>
-          <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            Ready for an <span className="text-amber-600">Unforgettable</span><br />
-            Dining Experience?
-          </h2>
-          <p className="text-xl text-neutral-300 mb-10 max-w-2xl mx-auto">
-            Reserve your table today and discover why Club Grille is Chattogram's premier 
-            destination for exceptional steaks and memorable moments.
-          </p>
+      {/* CTA SECTION */}
+      <section id="reservations" className="py-16 sm:py-24 bg-gradient-to-br from-neutral-800 via-neutral-900 to-red-950">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <Card className="bg-transparent border-0">
+            <CardContent className="p-6">
+              <div className="w-20 h-20 bg-amber-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Utensils className="h-10 w-10" />
+              </div>
+              <CardTitle className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
+                Ready for an <span className="text-amber-600">Unforgettable</span><br />
+                Dining Experience?
+              </CardTitle>
+              <CardDescription className="text-lg sm:text-xl text-neutral-300 mb-8 sm:mb-10 max-w-2xl mx-auto">
+                Reserve your table today and discover why Club Grille is Chattogram's premier 
+                destination for exceptional steaks and memorable moments.
+              </CardDescription>
 
-          <div className="flex gap-4 justify-center flex-wrap mb-12">
-            <button className="bg-amber-700 hover:bg-amber-600 px-8 py-4 rounded-md font-semibold text-lg transition-colors inline-flex items-center gap-2">
-              Reserve Your Table <ChevronRight className="w-5 h-5" />
-            </button>
-            <button className="border border-white/30 hover:bg-white/10 px-8 py-4 rounded-md font-semibold text-lg transition-colors">
-              View Menu
-            </button>
-          </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12">
+                <ReservationDialog>
+                  <Button size="lg" className="bg-amber-700 hover:bg-amber-600 px-8 py-6">
+                    Reserve Your Table <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </ReservationDialog>
+                
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white/30 hover:bg-white/10 px-8 py-6"
+                  onClick={() => scrollTo("menu")}
+                >
+                  View Menu
+                </Button>
+              </div>
 
-          <div className="flex justify-center gap-8 flex-wrap text-sm">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-amber-600" />
-              <span>Walk-ins Welcome</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-amber-600" />
-              <span>Group Reservations Available</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-amber-600" />
-              <span>Private Events</span>
-            </div>
-          </div>
+              <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 text-sm">
+                {['Walk-ins Welcome', 'Group Reservations Available', 'Private Events'].map((item) => (
+                  <div key={item} className="flex items-center gap-2 justify-center">
+                    <CheckCircle className="h-5 w-5 text-amber-600" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-neutral-950 py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
+      {/* FOOTER */}
+      <footer className="bg-neutral-950 py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-4 gap-8 sm:gap-12 mb-8 sm:mb-12">
             {/* Logo & Description */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-white" />
+                  <Utensils className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-xl font-bold">CLUB GRILLE</span>
               </div>
@@ -370,15 +460,11 @@ export default function RestaurantWebsite() {
                 Where steaks meet style. Experience premium cuts in a cozy, modern industrial atmosphere.
               </p>
               <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-red-800 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors">
-                  <Facebook className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-red-800 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors">
-                  <Instagram className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-red-800 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors">
-                  <MessageCircle className="w-5 h-5" />
-                </a>
+                {[Facebook, Instagram, MessageCircle].map((Icon, index) => (
+                  <Button key={index} size="icon" className="bg-red-800 hover:bg-red-700 rounded-full">
+                    <Icon className="h-5 w-5" />
+                  </Button>
+                ))}
               </div>
             </div>
 
@@ -386,11 +472,21 @@ export default function RestaurantWebsite() {
             <div>
               <h3 className="font-bold text-lg mb-4">Quick Links</h3>
               <ul className="space-y-3 text-neutral-400">
-                <li><a href="#home" className="hover:text-amber-600 transition-colors flex items-center gap-2"><ChevronRight className="w-4 h-4" /> Home</a></li>
-                <li><a href="#about" className="hover:text-amber-600 transition-colors flex items-center gap-2"><ChevronRight className="w-4 h-4" /> About Us</a></li>
-                <li><a href="#menu" className="hover:text-amber-600 transition-colors flex items-center gap-2"><ChevronRight className="w-4 h-4" /> Menu</a></li>
-                <li><a href="#gallery" className="hover:text-amber-600 transition-colors flex items-center gap-2"><ChevronRight className="w-4 h-4" /> Gallery</a></li>
-                <li><a href="#" className="hover:text-amber-600 transition-colors flex items-center gap-2"><ChevronRight className="w-4 h-4" /> Reviews</a></li>
+                {quickLinks.map((item) => (
+                  <li key={item}>
+                    <a 
+                      href={`#${item.toLowerCase().replace(' ', '')}`} 
+                      className="hover:text-amber-600 transition-colors flex items-center gap-2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const targetId = item === 'Home' ? 'home' : item.toLowerCase().replace(' ', '');
+                        scrollTo(targetId);
+                      }}
+                    >
+                      <ChevronRight className="h-4 w-4" /> {item}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -399,15 +495,15 @@ export default function RestaurantWebsite() {
               <h3 className="font-bold text-lg mb-4">Contact Info</h3>
               <ul className="space-y-4 text-neutral-400">
                 <li className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-1" />
+                  <MapPin className="h-5 w-5 text-amber-600 flex-shrink-0 mt-1" />
                   <span>Rahim's Plaza de CPDL<br />Chattogram, Bangladesh</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-amber-600" />
+                  <Phone className="h-5 w-5 text-amber-600" />
                   <span>+880 1234-567890</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-amber-600" />
+                  <Mail className="h-5 w-5 text-amber-600" />
                   <span>info@clubgrille.com</span>
                 </li>
               </ul>
@@ -425,15 +521,18 @@ export default function RestaurantWebsite() {
                   <span>Fri - Sun:</span>
                   <span className="text-amber-600 font-semibold">12PM - 12AM</span>
                 </div>
-                <button className="w-full bg-red-800 hover:bg-red-700 px-4 py-3 rounded-md font-semibold transition-colors mt-4 flex items-center justify-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Book Now
-                </button>
+                <ReservationDialog>
+                  <Button className="w-full bg-red-800 hover:bg-red-700 mt-4">
+                    <Calendar className="mr-2 h-5 w-5" />
+                    Book Now
+                  </Button>
+                </ReservationDialog>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-neutral-800 pt-8 text-center text-neutral-500 text-sm">
+          <Separator className="bg-neutral-800 mb-8" />
+          <div className="text-center text-neutral-500 text-sm">
             <p>&copy; 2024 Club Grille. All rights reserved. Crafted with passion for exceptional dining.</p>
           </div>
         </div>
