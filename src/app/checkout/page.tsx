@@ -48,12 +48,12 @@ export default function CheckoutPage() {
     }
     
     // Phone validation (Bangladeshi format)
-    const phoneRegex = /^(\+880|0)[1-9][0-9]{8,9}$/;
-    const cleanPhone = formData.phone.replace(/\s+/g, '');
+    const phoneRegex = /^(\+880|880|0)?1[3-9]\d{8}$/;
+    const cleanPhone = formData.phone.replace(/[\s\-]/g, ''); // Remove spaces and dashes
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
     } else if (!phoneRegex.test(cleanPhone)) {
-      newErrors.phone = "Please enter a valid Bangladeshi phone number (e.g., +880 1XXX-XXXXXX)";
+      newErrors.phone = "Please enter a valid Bangladeshi phone number (e.g., +880 1XXX-XXXXXXXX)";
     }
     
     // Address validation

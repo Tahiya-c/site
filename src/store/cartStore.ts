@@ -10,51 +10,78 @@ interface CartItem {
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: CartItem) => void; // Changed from Omit<CartItem, "qty">
+  totalCount: number; // ⭐ NEW
+
+  addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   increaseQty: (id: string) => void;
   decreaseQty: (id: string) => void;
   clearCart: () => void;
 }
 
+const calculateTotal = (items: CartItem[]) =>
+  items.reduce((sum, item) => sum + item.qty, 0);
+
 export const useCartStore = create<CartStore>((set) => ({
   items: [],
+  totalCount: 0,
 
   addItem: (item) =>
     set((state) => {
       const existing = state.items.find((i) => i.id === item.id);
 
+      let updatedItems;
       if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.id === item.id ? { ...i, qty: i.qty + item.qty } : i
-          ),
-        };
+        updatedItems = state.items.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + item.qty } : i
+        );
+      } else {
+        updatedItems = [...state.items, item];
       }
 
-      return { items: [...state.items, item] };
+      return {
+        items: updatedItems,
+        totalCount: calculateTotal(updatedItems),
+      };
     }),
 
   removeItem: (id) =>
-    set((state) => ({
-      items: state.items.filter((item) => item.id !== id),
-    })),
+    set((state) => {
+      const updatedItems = state.items.filter((item) => item.id !== id);
+      return {
+        items: updatedItems,
+        totalCount: calculateTotal(updatedItems),
+      };
+    }),
 
   increaseQty: (id) =>
-    set((state) => ({
-      items: state.items.map((i) =>
+    set((state) => {
+      const updatedItems = state.items.map((i) =>
         i.id === id ? { ...i, qty: i.qty + 1 } : i
-      ),
-    })),
+      );
+      return {
+        items: updatedItems,
+        totalCount: calculateTotal(updatedItems),
+      };
+    }),
 
   decreaseQty: (id) =>
-    set((state) => ({
-      items: state.items
+    set((state) => {
+      const updatedItems = state.items
         .map((i) =>
-          i.id === id ? { ...i, qty: Math.max(1, i.qty - 1) } : i
+          i.id === id ? { ...i, qty: Math.max(0, i.qty - 1) } : i
         )
-        .filter((i) => i.qty > 0),
-    })),
+        .filter((i) => i.qty > 0);
 
-  clearCart: () => set({ items: [] }),
+      return {
+        items: updatedItems,
+        totalCount: calculateTotal(updatedItems),
+      };
+    }),
+
+  clearCart: () =>
+    set({
+      items: [],
+      totalCount: 0,
+    }),
 }));

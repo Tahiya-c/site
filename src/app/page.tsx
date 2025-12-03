@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   ChevronRight, Phone, Mail, MapPin, Facebook, Instagram, MessageCircle,
-  Star, Flame, Utensils, Users, Lightbulb, Sofa, Calendar, CheckCircle, ArrowRight, Menu,
+  Star, Flame, Utensils, Users, Lightbulb, Sofa, Calendar, CheckCircle, ArrowRight, Menu, X, ShoppingCart
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CartSheet } from "@/components/cart/CartSheet";
 import { useCartStore } from "@/store/cartStore";
 import { menuItems as fullMenuItems } from "@/data/menu";
+import Link from "next/link";
 
 // ------------------------------------
 // REUSABLE HELPERS
@@ -92,6 +93,115 @@ const badgeColorMap = {
 } as const;
 
 // ------------------------------------
+// INTEGRATED NAVBAR COMPONENT
+// ------------------------------------
+const Navbar = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const totalCount = useCartStore((state) => state.totalCount);
+
+  return (
+    <nav className="fixed top-0 w-full bg-black/80 text-white z-50 backdrop-blur-md border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        
+        {/* LOGO */}
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center">
+            <Utensils className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-wide">
+            CLUB <span className="text-amber-600">GRILLE</span>
+          </span>
+        </div>
+
+        {/* DESKTOP NAV LINKS */}
+        <div className="hidden md:flex items-center gap-6">
+          {["home", "about", "menu", "gallery", "reservations"].map((id) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="hover:text-amber-600 transition-colors font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo(id);
+              }}
+            >
+              {id.charAt(0).toUpperCase() + id.slice(1)}
+            </a>
+          ))}
+
+          {/* DESKTOP CART */}
+          <div className="relative">
+            <CartSheet />
+            {totalCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
+                {totalCount}
+              </span>
+            )}
+          </div>
+          
+          {/* RESERVATION BUTTON */}
+          <ReservationDialog>
+            <Button className="bg-red-800 hover:bg-red-700">
+              Reserve Now
+            </Button>
+          </ReservationDialog>
+        </div>
+
+        {/* MOBILE MENU + CART */}
+        <div className="flex md:hidden items-center gap-4">
+          {/* MOBILE CART */}
+          <div className="relative">
+            <CartSheet />
+            {totalCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
+                {totalCount}
+              </span>
+            )}
+          </div>
+
+          {/* MOBILE MENU TOGGLE */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X /> : <Menu />}
+          </Button>
+        </div>
+      </div>
+
+      {/* MOBILE DROPDOWN MENU */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-black/90 backdrop-blur-md border-t border-white/10 p-4 space-y-4">
+          {["home", "about", "menu", "gallery", "reservations"].map((id) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="block hover:text-amber-600 transition-colors py-2"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo(id);
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              {id.charAt(0).toUpperCase() + id.slice(1)}
+            </a>
+          ))}
+          
+          <Separator className="bg-neutral-800" />
+          
+          <ReservationDialog>
+            <Button className="bg-red-800 hover:bg-red-700 w-full">
+              Reserve Table
+            </Button>
+          </ReservationDialog>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+// ------------------------------------
 // MAIN COMPONENT
 // ------------------------------------
 export default function RestaurantWebsite() {
@@ -115,92 +225,9 @@ export default function RestaurantWebsite() {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans">
-
-      {/* NAVIGATION */}
-      <nav className="fixed top-0 w-full bg-neutral-900/95 backdrop-blur-sm z-50 border-b border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-12 bg-amber-700 rounded-full flex items-center justify-center">
-              <Utensils className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold">
-              CLUB <span className="text-amber-600">GRILLE</span>
-            </span>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <NavigationMenu>
-              <NavigationMenuList className="gap-6">
-                {["about", "menu", "gallery"].map((id) => (
-                  <NavigationMenuItem key={id}>
-                    <NavigationMenuLink
-                      href={`#${id}`}
-                      className="hover:text-amber-600 transition-colors font-medium"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollTo(id);
-                      }}
-                    >
-                      {id.charAt(0).toUpperCase() + id.slice(1)}
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                ))}
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            {/* Cart Button */}
-            <CartSheet />
-            
-            {/* Reservation Button */}
-            <ReservationDialog>
-              <Button className="bg-red-800 hover:bg-red-700">
-                Reserve Now
-              </Button>
-            </ReservationDialog>
-          </div>
-
-          {/* Mobile */}
-          <div className="flex items-center gap-3 md:hidden">
-            <CartSheet />
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-
-              <SheetContent side="right" className="bg-neutral-900 border-l-neutral-800">
-                <div className="flex flex-col gap-6 mt-8">
-                  {["about", "menu", "gallery"].map((id) => (
-                    <a
-                      key={id}
-                      href={`#${id}`}
-                      className="text-lg hover:text-amber-600 transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollTo(id);
-                      }}
-                    >
-                      {id.charAt(0).toUpperCase() + id.slice(1)}
-                    </a>
-                  ))}
-
-                  <Separator className="bg-neutral-800" />
-
-                  <ReservationDialog>
-                    <Button className="bg-red-800 hover:bg-red-700 w-full">
-                      Reserve Table
-                    </Button>
-                  </ReservationDialog>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </nav>
+      
+      {/* INTEGRATED NAVBAR */}
+      <Navbar />
 
       {/* HERO SECTION */}
       <section id="home" className="relative min-h-screen flex items-center justify-start pt-20">
