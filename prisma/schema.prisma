@@ -1,10 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "node"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")  // ← THIS IS FINE IN PRISMA 6
 }
 
 model Order {
@@ -12,13 +13,13 @@ model Order {
   customerName   String
   customerEmail  String
   customerPhone  String
-  deliveryAddress String   // ADD THIS
+  deliveryAddress String
   items          Json
-  subtotal       Float     // ADD THIS
-  tax            Float     // ADD THIS
+  subtotal       Float
+  tax            Float
   total          Float
-  paymentMethod  String    @default("cash")  // ADD THIS
-  notes          String?   // ADD THIS
+  paymentMethod  String    @default("cash")
+  notes          String?
   status        String   @default("pending")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
