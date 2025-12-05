@@ -1,8 +1,5 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +18,15 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required fields
-    if (!customerName || !customerEmail || !customerPhone || !deliveryAddress || !items || !total) {
+    if (
+      !customerName ||
+      !customerEmail ||
+      !customerPhone ||
+      !deliveryAddress ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      total == null
+    ) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -34,7 +39,7 @@ export async function POST(request: Request) {
         customerEmail,
         customerPhone,
         deliveryAddress,
-        items: JSON.stringify(items), // Store as JSON string
+        items,      // RAW JSON (correct)
         subtotal,
         tax,
         total,
@@ -48,27 +53,11 @@ export async function POST(request: Request) {
       orderId: order.id,
       message: 'Order created successfully' 
     }, { status: 201 });
+
   } catch (error) {
     console.error('Order creation error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create order' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    return NextResponse.json({ success: true, orders });
-  } catch (error) {
-    console.error('Get orders error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch orders' },
       { status: 500 }
     );
   }

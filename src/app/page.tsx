@@ -17,6 +17,7 @@ import { useCartStore } from "@/store/cartStore";
 import { menuItems as fullMenuItems } from "@/data/menu";
 import Link from "next/link";
 
+import ReservationForm from "./reservations/ReservationForm";
 // ------------------------------------
 // REUSABLE HELPERS
 // ------------------------------------

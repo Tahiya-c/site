@@ -68,19 +68,47 @@ export default function CheckoutPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
+  if (!validateForm()) return;
+
+  try {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        deliveryAddress: formData.address,
+        items: items,
+        subtotal: subtotal,
+        tax: tax,
+        total: total + 50, // since you add delivery fee
+        paymentMethod: paymentMethod === "cod" ? "cash" : "card",
+        notes: formData.notes,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert("Failed to place order: " + data.error);
       return;
     }
-    
-    // In a real app, you would process payment here
-    alert("Order placed successfully! (This is a demo)");
+
+    alert("Order placed successfully! Your order ID: " + data.orderId);
+
     clearCart();
     router.push("/");
-  };
+  } catch (error) {
+    console.error("Order error:", error);
+    alert("Something went wrong while placing your order.");
+  }
+};
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
