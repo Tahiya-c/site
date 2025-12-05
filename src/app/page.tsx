@@ -24,17 +24,19 @@ import ReservationForm from "./reservations/ReservationForm";
 const scrollTo = (id: string) =>
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
+// UPDATED: ReservationDialog now uses the actual ReservationForm component
 const ReservationDialog = ({ children }: { children: React.ReactNode }) => (
   <Dialog>
     <DialogTrigger asChild>{children}</DialogTrigger>
-    <DialogContent className="bg-neutral-900 border-neutral-800">
-      <DialogHeader>
+    <DialogContent className="bg-neutral-900 border-neutral-800 max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader className="mb-6">
         <DialogTitle className="text-2xl text-amber-600">Make a Reservation</DialogTitle>
         <DialogDescription className="text-neutral-400">
           Book your table at Club Grille for an unforgettable dining experience.
         </DialogDescription>
       </DialogHeader>
-      <p className="text-neutral-300">Reservation form would go here...</p>
+      {/* REPLACED: Now using the actual ReservationForm component */}
+      <ReservationForm />
     </DialogContent>
   </Dialog>
 );
@@ -140,7 +142,7 @@ const Navbar = () => {
             )}
           </div>
           
-          {/* RESERVATION BUTTON */}
+          {/* RESERVATION BUTTON - Uses ReservationDialog */}
           <ReservationDialog>
             <Button className="bg-red-800 hover:bg-red-700">
               Reserve Now
@@ -191,6 +193,7 @@ const Navbar = () => {
           
           <Separator className="bg-neutral-800" />
           
+          {/* MOBILE RESERVATION BUTTON - Uses ReservationDialog */}
           <ReservationDialog>
             <Button className="bg-red-800 hover:bg-red-700 w-full">
               Reserve Table
@@ -254,6 +257,7 @@ export default function RestaurantWebsite() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              {/* HERO RESERVATION BUTTON - Uses ReservationDialog */}
               <ReservationDialog>
                 <Button size="lg" className="bg-red-800 hover:bg-red-700 text-lg px-8 py-6">
                   Reserve Your Table <ArrowRight className="ml-2 h-5 w-5" />
@@ -470,6 +474,7 @@ export default function RestaurantWebsite() {
               </CardDescription>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12">
+                {/* CTA RESERVATION BUTTON - Uses ReservationDialog */}
                 <ReservationDialog>
                   <Button size="lg" className="bg-amber-700 hover:bg-amber-600 px-8 py-6">
                     Reserve Your Table <ChevronRight className="ml-2 h-5 w-5" />
@@ -576,6 +581,7 @@ export default function RestaurantWebsite() {
                   <span>Fri - Sun:</span>
                   <span className="text-amber-600 font-semibold">12PM - 12AM</span>
                 </div>
+                {/* FOOTER RESERVATION BUTTON - Uses ReservationDialog */}
                 <ReservationDialog>
                   <Button className="w-full bg-red-800 hover:bg-red-700 mt-4">
                     <Calendar className="mr-2 h-5 w-5" />

@@ -5,43 +5,39 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const {
-      customerName,
-      customerEmail,
-      customerPhone,
-      date,
-      time,
-      guests,
-      specialRequests,
-    } = body;
+    const { name, email, phone, date, time, guests, message } = body;
 
     // Validate required fields
-    if (!customerName || !customerEmail || !customerPhone || !date || !time || !guests) {
+    if (!name || !email || !phone || !date || !time || !guests) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // ✔ FIXED: Match EXACT fields in your Prisma schema
+    // Create reservation in database
     const reservation = await prisma.reservation.create({
       data: {
-        name: customerName,
-        email: customerEmail,
-        phone: customerPhone,
+        name,
+        email,
+        phone,
         date: new Date(date),
-        time: time,
+        time,
         guests: Number(guests),
-        message: specialRequests || "",
-        status: "PENDING", // ✔ use UPPERCASE to match enum or string
+        message: message || null,
+        status: "pending", // lowercase to match your schema
       },
     });
+
+    // TODO: Send automated email here (we'll implement this later)
+    // await sendPendingEmail(reservation);
 
     return NextResponse.json(
       {
         success: true,
         reservationId: reservation.id,
-        message: "Reservation created successfully",
+        email: reservation.email,
+        message: "Reservation request received successfully",
       },
       { status: 201 }
     );
@@ -54,18 +50,18 @@ export async function POST(request: Request) {
   }
 }
 
-// Optional GET
+// Optional GET to fetch all reservations
 export async function GET() {
   try {
     const reservations = await prisma.reservation.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(reservations);
+    return NextResponse.json({ success: true, reservations });
   } catch (error) {
     console.error("Fetch Reservations Error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch reservations" },
+      { success: false, error: "Failed to fetch reservations" },
       { status: 500 }
     );
   }

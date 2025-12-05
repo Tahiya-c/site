@@ -1,271 +1,243 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar, Clock, Users, User, Mail, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-interface ReservationData {
-  name: string;
-  email: string;
-  phone: string;
-  date: string;
-  time: string;
-  guests: string;
-  specialRequests?: string;
-}
+import { useState } from "react";
+import { Calendar, Clock, Mail, Phone, User, Users } from "lucide-react";
 
 export default function ReservationForm() {
-  const [formData, setFormData] = useState<ReservationData>({
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  
+  const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     date: "",
     time: "",
-    guests: "",
-    specialRequests: "",
+    guests: "2",
+    message: "",
   });
-
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess(false);
+    setSuccessMessage("");
+    setErrorMessage("");
 
     try {
-      const response = await fetch("/api/reservations", {
+      const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName: formData.name,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-          date: formData.date,
-          time: formData.time,
-          guests: parseInt(formData.guests),
-          specialRequests: formData.specialRequests || "",
+          ...form,
+          guests: parseInt(form.guests),
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create reservation");
-      }
+      const data = await res.json();
 
-      setSuccess(true);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        date: "",
-        time: "",
-        guests: "",
-        specialRequests: "",
-      });
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
+      if (data.success) {
+        setSuccessMessage(
+          `Reservation request received! The approval status will be emailed to ${data.email} within a few hours. For immediate assistance, contact us at +880 1234-567890.`
+        );
+        // Reset form
+        setForm({
+          name: "",
+          email: "",
+          phone: "",
+          date: "",
+          time: "",
+          guests: "2",
+          message: "",
+        });
+      } else {
+        setErrorMessage(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      setErrorMessage("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const timeSlots = [
-    "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM",
-    "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
-    "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM",
-    "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM",
-    "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM",
-    "10:00 PM", "10:30 PM", "11:00 PM"
-  ];
-
-  const guestOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10+"];
-
-  // Get today's date in YYYY-MM-DD format for min date
-  const today = new Date().toISOString().split('T')[0];
-
   return (
-    <div>
-      {success && (
-        <div className="bg-green-900/50 border border-green-600 text-green-100 px-4 py-3 rounded-lg mb-6">
-          <p className="font-semibold">Reservation Confirmed! 🎉</p>
-          <p className="text-sm">We've sent a confirmation email to {formData.email}</p>
+    <div className="max-w-md mx-auto">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-600/10 border border-green-500/30 rounded-lg backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🎉</span>
+            <div>
+              <h3 className="font-semibold text-green-400 mb-1">
+                Reservation Confirmed!
+              </h3>
+              <p className="text-sm text-green-300/90 leading-relaxed">{successMessage}</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-900/50 border border-red-600 text-red-100 px-4 py-3 rounded-lg mb-6">
-          <p className="font-semibold">Error</p>
-          <p className="text-sm">{error}</p>
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="mb-6 p-4 bg-red-600/10 border border-red-500/30 rounded-lg backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-red-400 mb-1">Error</h3>
+              <p className="text-sm text-red-300/90">{errorMessage}</p>
+            </div>
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name */}
-        <div>
-          <Label htmlFor="name" className="text-neutral-300 flex items-center gap-2 mb-2">
-            <User className="h-4 w-4 text-amber-600" />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name */}
+        <div className="relative">
+          <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+            <User className="w-4 h-4" />
             Full Name
-          </Label>
-          <Input
-            id="name"
-            name="name"
+          </label>
+          <input
             type="text"
-            required
-            value={formData.name}
-            onChange={handleChange}
             placeholder="John Doe"
-            className="bg-neutral-800 border-neutral-700 text-white"
+            required
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
           />
         </div>
 
-        {/* Email */}
-        <div>
-          <Label htmlFor="email" className="text-neutral-300 flex items-center gap-2 mb-2">
-            <Mail className="h-4 w-4 text-amber-600" />
+        {/* Email Address */}
+        <div className="relative">
+          <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+            <Mail className="w-4 h-4" />
             Email Address
-          </Label>
-          <Input
-            id="email"
-            name="email"
+          </label>
+          <input
             type="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
             placeholder="john@example.com"
-            className="bg-neutral-800 border-neutral-700 text-white"
-          />
-        </div>
-
-        {/* Phone */}
-        <div>
-          <Label htmlFor="phone" className="text-neutral-300 flex items-center gap-2 mb-2">
-            <Phone className="h-4 w-4 text-amber-600" />
-            Phone Number
-          </Label>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
             required
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="+880 1234-567890"
-            className="bg-neutral-800 border-neutral-700 text-white"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
           />
         </div>
 
-        {/* Date & Time */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="date" className="text-neutral-300 flex items-center gap-2 mb-2">
-              <Calendar className="h-4 w-4 text-amber-600" />
+        {/* Phone Number */}
+        <div className="relative">
+          <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+            <Phone className="w-4 h-4" />
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            placeholder="+880 1234-567890"
+            required
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+          />
+        </div>
+
+        {/* Date and Time - Side by Side */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Date */}
+          <div className="relative">
+            <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+              <Calendar className="w-4 h-4" />
               Date
-            </Label>
-            <Input
-              id="date"
-              name="date"
+            </label>
+            <input
               type="date"
               required
-              min={today}
-              value={formData.date}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700 text-white"
+              min={new Date().toISOString().split("T")[0]}
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
             />
           </div>
 
-          <div>
-            <Label htmlFor="time" className="text-neutral-300 flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-amber-600" />
+          {/* Time */}
+          <div className="relative">
+            <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+              <Clock className="w-4 h-4" />
               Time
-            </Label>
-            <Select
-              name="time"
-              value={formData.time}
-              onValueChange={(value) => handleSelectChange("time", value)}
+            </label>
+            <select
               required
+              value={form.time}
+              onChange={(e) => setForm({ ...form, time: e.target.value })}
+              className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all appearance-none cursor-pointer"
             >
-              <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-                <SelectValue placeholder="Select time" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700 text-white">
-                {timeSlots.map((slot) => (
-                  <SelectItem key={slot} value={slot}>
-                    {slot}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">Select time</option>
+              <option value="12:00 PM">12:00 PM</option>
+              <option value="12:30 PM">12:30 PM</option>
+              <option value="1:00 PM">1:00 PM</option>
+              <option value="1:30 PM">1:30 PM</option>
+              <option value="2:00 PM">2:00 PM</option>
+              <option value="2:30 PM">2:30 PM</option>
+              <option value="3:00 PM">3:00 PM</option>
+              <option value="6:00 PM">6:00 PM</option>
+              <option value="6:30 PM">6:30 PM</option>
+              <option value="7:00 PM">7:00 PM</option>
+              <option value="7:30 PM">7:30 PM</option>
+              <option value="8:00 PM">8:00 PM</option>
+              <option value="8:30 PM">8:30 PM</option>
+              <option value="9:00 PM">9:00 PM</option>
+              <option value="9:30 PM">9:30 PM</option>
+              <option value="10:00 PM">10:00 PM</option>
+            </select>
           </div>
         </div>
 
-        {/* Number of Guests */}
-        <div>
-          <Label htmlFor="guests" className="text-neutral-300 flex items-center gap-2 mb-2">
-            <Users className="h-4 w-4 text-amber-600" />
+        {/* Number of Guests - Dropdown */}
+        <div className="relative">
+          <label className="flex items-center gap-2 text-orange-400 text-sm font-medium mb-2">
+            <Users className="w-4 h-4" />
             Number of Guests
-          </Label>
-          <Select
-            name="guests"
-            value={formData.guests}
-            onValueChange={(value) => handleSelectChange("guests", value)}
+          </label>
+          <select
             required
+            value={form.guests}
+            onChange={(e) => setForm({ ...form, guests: e.target.value })}
+            className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all appearance-none cursor-pointer"
           >
-            <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-              <SelectValue placeholder="Select guests" />
-            </SelectTrigger>
-            <SelectContent className="bg-neutral-800 border-neutral-700 text-white">
-              {guestOptions.map((num) => (
-                <SelectItem key={num} value={num}>
-                  {num} {num === "1" ? "Guest" : "Guests"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">Select guests</option>
+            <option value="1">1 Guest</option>
+            <option value="2">2 Guests</option>
+            <option value="3">3 Guests</option>
+            <option value="4">4 Guests</option>
+            <option value="5">5 Guests</option>
+            <option value="6">6 Guests</option>
+            <option value="7">7 Guests</option>
+            <option value="8">8 Guests</option>
+            <option value="9">9 Guests</option>
+            <option value="10+">10+ Guests</option>
+          </select>
         </div>
 
         {/* Special Requests */}
-        <div>
-          <Label htmlFor="specialRequests" className="text-neutral-300 mb-2 block">
+        <div className="relative">
+          <label className="text-white text-sm font-medium mb-2 block">
             Special Requests (Optional)
-          </Label>
+          </label>
           <textarea
-            id="specialRequests"
-            name="specialRequests"
-            value={formData.specialRequests}
-            onChange={handleChange}
-            placeholder="Allergies, special occasions, seating preferences..."
-            rows={3}
-            className="w-full bg-neutral-800 border-neutral-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-600"
+            placeholder="Any dietary restrictions, seating preferences, or special occasions..."
+            rows={4}
+            value={form.message}
+            onChange={(e) => setForm({ ...form, message: e.target.value })}
+            className="w-full px-4 py-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
           />
         </div>
 
         {/* Submit Button */}
-        <Button
+        <button
           type="submit"
           disabled={loading}
-          className="w-full bg-red-800 hover:bg-red-700 text-white py-6 text-lg font-semibold"
+          className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          {loading ? "Confirming..." : "Confirm Reservation"}
-        </Button>
+          {loading ? "Submitting..." : "Confirm Reservation"}
+        </button>
       </form>
     </div>
   );
