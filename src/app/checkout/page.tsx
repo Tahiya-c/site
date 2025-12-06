@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowLeft, CreditCard, User, MapPin, Phone, Mail, Wallet } from "lucide-react";
+import { ArrowLeft, CreditCard, User, MapPin, Phone, Mail, Wallet, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,13 @@ export default function CheckoutPage() {
   });
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // ✅ NEW: Loading & success states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [cooldownTime, setCooldownTime] = useState(0);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const tax = subtotal * 0.05;
@@ -32,14 +39,12 @@ export default function CheckoutPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // Name validation
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     } else if (formData.name.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters";
     }
     
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
@@ -47,16 +52,14 @@ export default function CheckoutPage() {
       newErrors.email = "Please enter a valid email address";
     }
     
-    // Phone validation (Bangladeshi format)
     const phoneRegex = /^(\+880|880|0)?1[3-9]\d{8}$/;
-    const cleanPhone = formData.phone.replace(/[\s\-]/g, ''); // Remove spaces and dashes
+    const cleanPhone = formData.phone.replace(/[\s\-]/g, '');
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
     } else if (!phoneRegex.test(cleanPhone)) {
-      newErrors.phone = "Please enter a valid Bangladeshi phone number (e.g., +880 1XXX-XXXXXXXX)";
+      newErrors.phone = "Please enter a valid Bangladeshi phone number";
     }
     
-    // Address validation
     if (!formData.address.trim()) {
       newErrors.address = "Delivery address is required";
     } else if (formData.address.trim().length < 10) {
@@ -68,52 +71,81 @@ export default function CheckoutPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
+    
+    // ✅ Prevent double submission
+    if (isSubmitting || cooldownTime > 0) return;
 
-  try {
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        deliveryAddress: formData.address,
-        items: items,
-        subtotal: subtotal,
-        tax: tax,
-        total: total + 50, // since you add delivery fee
-        paymentMethod: paymentMethod === "cod" ? "cash" : "card",
-        notes: formData.notes,
-      }),
-    });
+    setIsSubmitting(true);
 
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: formData.name,
+          customerEmail: formData.email,
+          customerPhone: formData.phone,
+          deliveryAddress: formData.address,
+          items: items,
+          subtotal: subtotal,
+          tax: tax,
+          total: total + 50,
+          paymentMethod: paymentMethod === "cod" ? "cash" : "card",
+          notes: formData.notes,
+        }),
+      });
 
-    if (!res.ok) {
-      alert("Failed to place order: " + data.error);
-      return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Show error in a better way
+        setErrors({ submit: data.error || "Failed to place order" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // ✅ Show success message with email confirmation (NO ALERT!)
+      setOrderSuccess(true);
+      setSuccessMessage(data.message);
+      setOrderId(data.orderId);
+      
+      // Clear cart
+      clearCart();
+
+      // ✅ Start 60-second cooldown
+      setCooldownTime(60);
+      const countdown = setInterval(() => {
+        setCooldownTime((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Auto-redirect to home after 5 seconds
+      setTimeout(() => {
+        router.push("/");
+      }, 5000);
+
+    } catch (error) {
+      console.error("Order error:", error);
+      setErrors({ submit: "Something went wrong. Please try again." });
+      setIsSubmitting(false);
     }
-
-    alert("Order placed successfully! Your order ID: " + data.orderId);
-
-    clearCart();
-    router.push("/");
-  } catch (error) {
-    console.error("Order error:", error);
-    alert("Something went wrong while placing your order.");
-  }
-};
+  };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
     
-    // Auto-format phone number
     value = value.replace(/\D/g, '');
     if (value.startsWith('880')) {
       value = '+' + value;
@@ -123,7 +155,6 @@ export default function CheckoutPage() {
       value = '+880' + value;
     }
     
-    // Add spaces for readability
     if (value.length > 4) {
       value = value.substring(0, 4) + ' ' + value.substring(4);
     }
@@ -133,6 +164,59 @@ export default function CheckoutPage() {
     
     setFormData({ ...formData, phone: value });
   };
+
+  // ✅ Success Screen
+  if (orderSuccess) {
+    return (
+      <div className="min-h-screen bg-neutral-900 pt-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
+          <Card className="bg-neutral-800 border-neutral-700">
+            <CardContent className="p-12 text-center">
+              <div className="mb-6">
+                <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
+              </div>
+              
+              <h2 className="text-3xl font-bold text-white mb-4">
+                🎉 Order Placed Successfully!
+              </h2>
+              
+              <div className="bg-green-900/30 border border-green-700 rounded-lg p-6 mb-6">
+                <p className="text-green-400 text-lg mb-2">
+                  {successMessage}
+                </p>
+                <p className="text-neutral-300 text-sm">
+                  Order ID: <span className="font-mono text-amber-400">#{orderId}</span>
+                </p>
+              </div>
+
+              <div className="space-y-3 text-neutral-300 mb-8">
+                <p className="flex items-center justify-center gap-2">
+                  <Mail className="h-5 w-5 text-amber-500" />
+                  A confirmation email has been sent to <strong className="text-white">{formData.email}</strong>
+                </p>
+                <p className="text-sm text-neutral-400">
+                  ⏱️ Estimated preparation time: 20-30 minutes
+                </p>
+              </div>
+
+              <Separator className="bg-neutral-700 my-6" />
+
+              <div className="space-y-4">
+                <p className="text-neutral-400 text-sm">
+                  Redirecting to home page in 5 seconds...
+                </p>
+                <Link href="/">
+                  <Button className="bg-amber-600 hover:bg-amber-500 text-white w-full">
+                    Return to Home
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -166,7 +250,6 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold text-white mb-8">Checkout</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Order Summary */}
           <div className="lg:col-span-2">
             <Card className="bg-neutral-800 border-neutral-700">
               <CardHeader>
@@ -186,6 +269,7 @@ export default function CheckoutPage() {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         required
+                        disabled={isSubmitting}
                         className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
                       />
                       {errors.name && <p className="text-sm text-red-400">{errors.name}</p>}
@@ -199,6 +283,7 @@ export default function CheckoutPage() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         required
+                        disabled={isSubmitting}
                         className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
                       />
                       {errors.email && <p className="text-sm text-red-400">{errors.email}</p>}
@@ -216,12 +301,10 @@ export default function CheckoutPage() {
                       value={formData.phone}
                       onChange={handlePhoneChange}
                       required
+                      disabled={isSubmitting}
                       className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
                     />
                     {errors.phone && <p className="text-sm text-red-400">{errors.phone}</p>}
-                    <p className="text-xs text-neutral-500">
-                      Format: +880 1XXX-XXXXXX (Bangladeshi number)
-                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -231,10 +314,11 @@ export default function CheckoutPage() {
                     </Label>
                     <Textarea
                       id="address"
-                      placeholder="Enter your full delivery address including house number, street, area, and city"
+                      placeholder="Enter your full delivery address"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       required
+                      disabled={isSubmitting}
                       className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500 min-h-[100px]"
                       maxLength={200}
                     />
@@ -250,15 +334,13 @@ export default function CheckoutPage() {
                     <Label htmlFor="notes" className="text-neutral-300">Order Notes (Optional)</Label>
                     <Textarea
                       id="notes"
-                      placeholder="Any special instructions for your order? (allergies, dietary restrictions, delivery instructions, etc.)"
+                      placeholder="Any special instructions?"
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      disabled={isSubmitting}
                       className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
                       maxLength={500}
                     />
-                    <p className="text-xs text-neutral-500 text-right">
-                      {formData.notes.length}/500 characters
-                    </p>
                   </div>
 
                   <div className="pt-4">
@@ -275,6 +357,7 @@ export default function CheckoutPage() {
                           : "border-neutral-600 hover:bg-neutral-700 text-neutral-300 hover:text-white"
                         }
                         onClick={() => setPaymentMethod("cod")}
+                        disabled={isSubmitting}
                       >
                         Cash on Delivery
                       </Button>
@@ -286,22 +369,40 @@ export default function CheckoutPage() {
                           : "border-neutral-600 hover:bg-neutral-700 text-neutral-300 hover:text-white"
                         }
                         onClick={() => setPaymentMethod("card")}
+                        disabled={isSubmitting}
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         Credit Card
                       </Button>
                     </div>
-                    <p className="text-sm text-neutral-400 mt-2">
-                      {paymentMethod === "cod" 
-                        ? "Pay with cash when your order arrives" 
-                        : "You will be redirected to secure payment gateway"
-                      }
-                    </p>
                   </div>
 
-                  <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white py-6 text-lg">
-                    <CreditCard className="mr-2 h-5 w-5" />
-                    Place Order - BDT {(total + 50).toFixed(2)}
+                  {/* Error message display */}
+                  {errors.submit && (
+                    <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-400">
+                      {errors.submit}
+                    </div>
+                  )}
+
+                  {/* ✅ Submit Button with Loading State */}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-amber-600 hover:bg-amber-500 text-white py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isSubmitting || cooldownTime > 0}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing Order...
+                      </>
+                    ) : cooldownTime > 0 ? (
+                      <>Wait {cooldownTime}s before next order</>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-5 w-5" />
+                        Place Order - BDT {(total + 50).toFixed(2)}
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>

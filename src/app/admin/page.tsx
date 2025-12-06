@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, Clock, Mail, Phone, Calendar, Users } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle, XCircle, Users, ShoppingBag, MapPin, Phone, Mail, Package, DollarSign, Trash2, RefreshCw } from 'lucide-react';
 
 interface Reservation {
   id: string;
@@ -11,308 +11,531 @@ interface Reservation {
   date: string;
   time: string;
   guests: number;
-  message: string | null;
+  message?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface OrderItem {
+  name: string;
+  qty: number;
+  price: number;
+}
+
+interface Order {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentMethod?: string;
+  notes?: string | null;
   status: string;
   createdAt: string;
 }
 
 export default function AdminPanel() {
+  const [activeTab, setActiveTab] = useState<'reservations' | 'orders'>('reservations');
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  // Fetch reservations
-  const fetchReservations = async () => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+      setLastRefresh(new Date());
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/reservations");
-      const data = await res.json();
-      if (data.success) {
-        setReservations(data.reservations);
-      }
+      const resRes = await fetch('/api/reservations');
+      const resData = await resRes.json();
+      setReservations(resData.reservations || []);
+
+      const ordRes = await fetch('/api/orders');
+      const ordData = await ordRes.json();
+      setOrders(ordData.orders || []);
     } catch (error) {
-      console.error("Failed to fetch reservations:", error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching data:', error);
+    }
+    setLoading(false);
+  };
+
+  const updateReservationStatus = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await fetch(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error updating reservation:', error);
     }
   };
 
-  useEffect(() => {
-    fetchReservations();
-  }, []);
-
-  // Update reservation status
-  const updateStatus = async (id: string, status: "approved" | "rejected") => {
-    setUpdating(id);
+  const updateOrderStatus = async (id: string, status: string) => {
     try {
-      const res = await fetch(`/api/reservations/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-
-      const data = await res.json();
-
-      if (data.success) {
-        // Update local state
-        setReservations((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status } : r))
-        );
-        alert(`Reservation ${status}! Email sent to customer.`);
-      } else {
-        alert("Failed to update reservation: " + data.error);
-      }
+      fetchData();
     } catch (error) {
-      alert("Error updating reservation");
-      console.error(error);
-    } finally {
-      setUpdating(null);
+      console.error('Error updating order:', error);
+    }
+  };
+
+  const deleteOrder = async (id: string) => {
+    if (!confirm('Remove this order from the panel? (It will still be saved in the database)')) return;
+    
+    try {
+      await fetch(`/api/orders/${id}`, {
+        method: 'DELETE',
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+    }
+  };
+
+  const clearCompletedOrders = async () => {
+    const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+    
+    if (completedOrders.length === 0) {
+      alert('No completed or cancelled orders to clear!');
+      return;
+    }
+
+    if (!confirm(`Clear ${completedOrders.length} completed/cancelled orders from the panel?`)) return;
+
+    try {
+      await fetch('/api/orders/clear-completed', {
+        method: 'DELETE',
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error clearing orders:', error);
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-800 border-green-300";
-      case "rejected":
-        return "bg-red-100 text-red-800 border-red-300";
-      default:
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+    switch (status?.toLowerCase()) {
+      case 'approved': case 'completed': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'rejected': case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500';
+      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
+      case 'preparing': return 'bg-blue-500/20 text-blue-400 border-blue-500';
+      case 'ready': return 'bg-purple-500/20 text-purple-400 border-purple-500';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle2 className="w-4 h-4" />;
-      case "rejected":
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
+  const formatTime = (date: string) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
-  if (loading) {
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const sortedOrders = [...orders].sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  const resCounts = {
+    pending: reservations.filter(r => r.status === 'pending').length,
+    approved: reservations.filter(r => r.status === 'approved').length,
+    rejected: reservations.filter(r => r.status === 'rejected').length,
+  };
+
+  const orderCounts = {
+    pending: orders.filter(o => o.status === 'pending').length,
+    preparing: orders.filter(o => o.status === 'preparing').length,
+    ready: orders.filter(o => o.status === 'ready').length,
+    completed: orders.filter(o => o.status === 'completed').length,
+  };
+
+  if (loading && orders.length === 0 && reservations.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading reservations...</div>
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-8">
+    <div className="min-h-screen bg-neutral-900 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            🔥 Club Grille Admin Panel
-          </h1>
-          <p className="text-neutral-400">Manage reservations and send automated emails</p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-400 text-sm">Pending</p>
-                <p className="text-3xl font-bold text-yellow-400">
-                  {reservations.filter((r) => r.status === "pending").length}
-                </p>
-              </div>
-              <Clock className="w-12 h-12 text-yellow-400 opacity-50" />
-            </div>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-white flex items-center gap-3 mb-2">
+              🔥 Club Grille Admin Panel
+            </h1>
+            <p className="text-neutral-400">Manage reservations and orders</p>
           </div>
-
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-400 text-sm">Approved</p>
-                <p className="text-3xl font-bold text-green-400">
-                  {reservations.filter((r) => r.status === "approved").length}
-                </p>
-              </div>
-              <CheckCircle2 className="w-12 h-12 text-green-400 opacity-50" />
+          
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => fetchData()}
+              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg flex items-center gap-2 border border-neutral-600"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Now
+            </button>
+            <div className="flex items-center gap-2 bg-neutral-800 px-4 py-2 rounded-lg border border-neutral-600">
+              <input
+                type="checkbox"
+                id="autoRefresh"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="autoRefresh" className="text-white text-sm cursor-pointer">
+                Auto-refresh (10s)
+              </label>
             </div>
-          </div>
-
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-400 text-sm">Rejected</p>
-                <p className="text-3xl font-bold text-red-400">
-                  {reservations.filter((r) => r.status === "rejected").length}
-                </p>
-              </div>
-              <XCircle className="w-12 h-12 text-red-400 opacity-50" />
-            </div>
+            <span className="text-neutral-500 text-sm">
+              Last: {formatTime(lastRefresh.toISOString())}
+            </span>
           </div>
         </div>
 
-        {/* Reservations List */}
-        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-neutral-900/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Guests
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-700">
-                {reservations.length === 0 ? (
+        <div className="flex gap-4 mb-8 border-b border-neutral-700">
+          <button
+            onClick={() => setActiveTab('reservations')}
+            className={`pb-4 px-6 font-semibold transition-all ${
+              activeTab === 'reservations'
+                ? 'text-amber-500 border-b-2 border-amber-500'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Users className="inline mr-2 h-5 w-5" />
+            Reservations
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`pb-4 px-6 font-semibold transition-all ${
+              activeTab === 'orders'
+                ? 'text-amber-500 border-b-2 border-amber-500'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <ShoppingBag className="inline mr-2 h-5 w-5" />
+            Orders
+            {orderCounts.pending > 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-red-600 text-white text-xs rounded-full">
+                {orderCounts.pending}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === 'reservations' && (
+          <>
+            <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">Pending</p>
+                    <p className="text-3xl font-bold text-yellow-400">{resCounts.pending}</p>
+                  </div>
+                  <Clock className="h-12 w-12 text-yellow-500" />
+                </div>
+              </div>
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">Approved</p>
+                    <p className="text-3xl font-bold text-green-400">{resCounts.approved}</p>
+                  </div>
+                  <CheckCircle className="h-12 w-12 text-green-500" />
+                </div>
+              </div>
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">Rejected</p>
+                    <p className="text-3xl font-bold text-red-400">{resCounts.rejected}</p>
+                  </div>
+                  <XCircle className="h-12 w-12 text-red-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-neutral-900 border-b border-neutral-700">
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-neutral-400">
-                      No reservations yet
-                    </td>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">CUSTOMER</th>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">CONTACT</th>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">DATE & TIME</th>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">GUESTS</th>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">STATUS</th>
+                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">ACTIONS</th>
                   </tr>
-                ) : (
-                  reservations.map((reservation) => (
-                    <tr
-                      key={reservation.id}
-                      className="hover:bg-neutral-800/30 transition-colors"
-                    >
-                      {/* Customer */}
+                </thead>
+                <tbody>
+                  {reservations.map((res) => (
+                    <tr key={res.id} className="border-b border-neutral-700 hover:bg-neutral-750">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {reservation.name.charAt(0).toUpperCase()}
+                          <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">
+                            {res.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-white font-medium">{reservation.name}</p>
-                            <p className="text-neutral-400 text-sm">
-                              {new Date(reservation.createdAt).toLocaleDateString()}
-                            </p>
+                            <p className="text-white font-medium">{res.name}</p>
+                            <p className="text-neutral-400 text-sm">{formatDate(res.createdAt)}</p>
                           </div>
                         </div>
                       </td>
-
-                      {/* Contact */}
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-neutral-300 text-sm">
-                            <Mail className="w-4 h-4 text-neutral-500" />
-                            {reservation.email}
-                          </div>
-                          <div className="flex items-center gap-2 text-neutral-300 text-sm">
-                            <Phone className="w-4 h-4 text-neutral-500" />
-                            {reservation.phone}
-                          </div>
-                        </div>
+                        <p className="text-neutral-300 text-sm flex items-center gap-2">
+                          <Mail className="h-4 w-4" /> {res.email}
+                        </p>
+                        <p className="text-neutral-400 text-sm flex items-center gap-2">
+                          <Phone className="h-4 w-4" /> {res.phone}
+                        </p>
                       </td>
-
-                      {/* Date & Time */}
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-neutral-300 text-sm">
-                            <Calendar className="w-4 h-4 text-neutral-500" />
-                            {new Date(reservation.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </div>
-                          <div className="flex items-center gap-2 text-neutral-300 text-sm">
-                            <Clock className="w-4 h-4 text-neutral-500" />
-                            {reservation.time}
-                          </div>
-                        </div>
+                        <p className="text-white">{formatDate(res.date)}</p>
+                        <p className="text-neutral-400 text-sm">{res.time}</p>
                       </td>
-
-                      {/* Guests */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-neutral-300">
-                          <Users className="w-4 h-4 text-neutral-500" />
-                          <span className="font-medium">{reservation.guests}</span>
-                        </div>
+                        <p className="text-white font-medium">{res.guests} guests</p>
                       </td>
-
-                      {/* Status */}
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                            reservation.status
-                          )}`}
-                        >
-                          {getStatusIcon(reservation.status)}
-                          {reservation.status.toUpperCase()}
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(res.status)}`}>
+                          {res.status.toUpperCase()}
                         </span>
                       </td>
-
-                      {/* Actions */}
                       <td className="px-6 py-4">
-                        {reservation.status === "pending" ? (
+                        {res.status === 'pending' && (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => updateStatus(reservation.id, "approved")}
-                              disabled={updating === reservation.id}
-                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              onClick={() => updateReservationStatus(res.id, 'approved')}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-sm"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
                               Approve
                             </button>
                             <button
-                              onClick={() => updateStatus(reservation.id, "rejected")}
-                              disabled={updating === reservation.id}
-                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              onClick={() => updateReservationStatus(res.id, 'rejected')}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm"
                             >
-                              <XCircle className="w-4 h-4" />
                               Reject
                             </button>
                           </div>
-                        ) : (
-                          <span className="text-neutral-500 text-sm">
-                            {reservation.status === "approved" ? "✓ Email sent" : "✗ Email sent"}
-                          </span>
+                        )}
+                        {res.status !== 'pending' && (
+                          <span className="text-neutral-500 text-sm">✓ Email sent</span>
                         )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Message Details Section */}
-        {reservations.some((r) => r.message) && (
-          <div className="mt-8 bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Special Requests</h3>
-            <div className="space-y-4">
-              {reservations
-                .filter((r) => r.message)
-                .map((r) => (
-                  <div
-                    key={r.id}
-                    className="bg-neutral-900/50 border border-neutral-700 rounded-lg p-4"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <p className="text-white font-medium">{r.name}</p>
-                      <span className="text-neutral-400 text-sm">
-                        {new Date(r.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-neutral-300 text-sm">{r.message}</p>
-                  </div>
-                ))}
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </>
+        )}
+
+        {activeTab === 'orders' && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <div className="grid grid-cols-4 gap-6 flex-1">
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-neutral-400 text-sm">Pending</p>
+                      <p className="text-3xl font-bold text-yellow-400">{orderCounts.pending}</p>
+                    </div>
+                    <Clock className="h-12 w-12 text-yellow-500" />
+                  </div>
+                </div>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-neutral-400 text-sm">Preparing</p>
+                      <p className="text-3xl font-bold text-blue-400">{orderCounts.preparing}</p>
+                    </div>
+                    <Package className="h-12 w-12 text-blue-500" />
+                  </div>
+                </div>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-neutral-400 text-sm">Ready</p>
+                      <p className="text-3xl font-bold text-purple-400">{orderCounts.ready}</p>
+                    </div>
+                    <CheckCircle className="h-12 w-12 text-purple-500" />
+                  </div>
+                </div>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-neutral-400 text-sm">Completed</p>
+                      <p className="text-3xl font-bold text-green-400">{orderCounts.completed}</p>
+                    </div>
+                    <CheckCircle className="h-12 w-12 text-green-500" />
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={clearCompletedOrders}
+                className="ml-6 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg flex items-center gap-2 whitespace-nowrap"
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear Completed
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {sortedOrders.map((order, index) => (
+                <div key={order.id} className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-lg">
+                        #{index + 1}
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-white">{order.customerName}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                            {order.status?.toUpperCase() || 'PENDING'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                          <div className="flex items-center gap-2 text-neutral-300">
+                            <Clock className="h-4 w-4 text-amber-500" />
+                            <span>{formatTime(order.createdAt)} • {formatDate(order.createdAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-neutral-300">
+                            <Phone className="h-4 w-4 text-amber-500" />
+                            <span>{order.customerPhone}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-neutral-300">
+                            <Mail className="h-4 w-4 text-amber-500" />
+                            <span>{order.customerEmail}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-2 text-neutral-300 mb-4">
+                          <MapPin className="h-4 w-4 text-amber-500 mt-1" />
+                          <span className="text-sm">{order.deliveryAddress}</span>
+                        </div>
+
+                        <div className="bg-neutral-900 rounded-lg p-4 mb-4">
+                          <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                            <Package className="h-4 w-4 text-amber-500" />
+                            Order Items:
+                          </h4>
+                          <div className="space-y-2">
+                            {order.items?.map((item, i) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="text-neutral-300">
+                                  {item.name} <span className="text-neutral-500">× {item.qty}</span>
+                                </span>
+                                <span className="text-white font-medium">BDT {item.price}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="border-t border-neutral-700 mt-3 pt-3 flex justify-between items-center">
+                            <span className="text-white font-bold flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-amber-500" />
+                              Total:
+                            </span>
+                            <span className="text-amber-400 font-bold text-lg">BDT {order.total}</span>
+                          </div>
+                        </div>
+
+                        {order.notes && (
+                          <div className="bg-amber-900/20 border border-amber-700/50 rounded p-3 text-sm text-amber-200">
+                            <strong>Note:</strong> {order.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'preparing')}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium"
+                        >
+                          Start Preparing
+                        </button>
+                      )}
+                      {order.status === 'preparing' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'ready')}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-medium"
+                        >
+                          Mark Ready
+                        </button>
+                      )}
+                      {order.status === 'ready' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'completed')}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-medium"
+                        >
+                          Complete Order
+                        </button>
+                      )}
+                      {order.status !== 'cancelled' && order.status !== 'completed' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => deleteOrder(order.id)}
+                        className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded font-medium flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {sortedOrders.length === 0 && (
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-12 text-center">
+                  <ShoppingBag className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
+                  <p className="text-neutral-400 text-lg">No orders yet</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

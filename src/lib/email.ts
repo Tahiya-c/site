@@ -11,10 +11,139 @@ interface ReservationData {
   message?: string | null;
 }
 
+interface OrderItem {
+  name: string;
+  price: number;
+  qty: number; // ← Using 'qty' to match your database
+}
+
+interface OrderData {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  items: any[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  deliveryAddress: string;
+}
+
+// ============================================
+// ORDER CONFIRMATION EMAIL (NEW - PREMIUM STYLE)
+// ============================================
+export async function sendOrderConfirmationEmail(order: OrderData) {
+  try {
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: order.customerEmail,
+      subject: 'Order Confirmed! - Club Grille',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .logo { font-size: 24px; font-weight: bold; color: #ff6b35; }
+            .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
+            .success-badge { background: #4CAF50; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; margin: 20px 0; }
+            .order-box { background: #fff9f5; border: 2px solid #ff6b35; padding: 20px; margin: 20px 0; border-radius: 8px; }
+            .order-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+            .order-item:last-child { border-bottom: none; }
+            .item-name { font-weight: 500; color: #333; }
+            .item-qty { color: #666; font-size: 14px; }
+            .item-price { font-weight: bold; color: #ff6b35; }
+            .total-row { display: flex; justify-content: space-between; padding: 20px 0 0 0; margin-top: 15px; border-top: 2px solid #ff6b35; font-size: 18px; font-weight: bold; }
+            .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">🔥 CLUB GRILLE</div>
+              <p style="margin: 10px 0 0 0; font-size: 14px;">Where Steaks Meet Style</p>
+            </div>
+            
+            <div class="content">
+              <div style="text-align: center;">
+                <div class="success-badge">✓ ORDER CONFIRMED</div>
+              </div>
+              
+              <h2 style="color: #ff6b35; text-align: center;">Your Order is Being Prepared!</h2>
+              
+              <p>Dear ${order.customerName},</p>
+              
+              <p>Thank you for placing your order with <strong>Club Grille</strong>! We're excited to prepare your delicious meal.</p>
+              
+              <div class="order-box">
+                <h3 style="margin-top: 0; color: #ff6b35;">Order Summary</h3>
+                ${order.items.map(item => `
+                  <div class="order-item">
+                    <div>
+                      <div class="item-name">${item.name}</div>
+                      <div class="item-qty">Quantity: ${item.qty}</div>
+                    </div>
+                    <div class="item-price">$${item.price}</div>
+                  </div>
+                `).join('')}
+                
+                <div class="total-row">
+                  <span>Total:</span>
+                  <span style="color: #ff6b35;">$${order.total}</span>
+                </div>
+              </div>
+              
+              <p style="margin-top: 25px; padding: 15px; background: #fff3e0; border-left: 4px solid #ff6b35;">
+                ⏱️ <strong>Estimated preparation time:</strong> 20-30 minutes
+              </p>
+              
+              <p><strong>What happens next?</strong></p>
+              <ul style="line-height: 1.8;">
+                <li>Our chefs are preparing your order with the finest ingredients</li>
+                <li>You'll receive an update when your order is ready for pickup/delivery</li>
+                <li>Need to modify your order? Call us ASAP at +880 1234-567890</li>
+              </ul>
+              
+              <p style="margin-top: 25px;"><strong>Contact Information:</strong></p>
+              <p style="margin: 5px 0;">
+                📞 +880 1234-567890<br>
+                📧 info@clubgrille.com<br>
+                📍 Rahim's Plaza de CPDL, Chattogram, Bangladesh
+              </p>
+              
+              <p style="margin-top: 30px;">We appreciate your business and can't wait to serve you!</p>
+              
+              <p style="margin-top: 20px;">
+                Best regards,<br>
+                <strong>The Club Grille Team</strong>
+              </p>
+            </div>
+            
+            <div class="footer">
+              <p><strong>Opening Hours</strong></p>
+              <p style="margin: 5px 0;">Mon - Thu: 12PM - 11PM | Fri - Sun: 12PM - 12AM</p>
+              <p style="margin-top: 15px; font-size: 12px; color: #999;">© 2024 Club Grille. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending order confirmation email:', error);
+    return { success: false, error };
+  }
+}
+
+// ============================================
+// RESERVATION EMAILS (UNCHANGED)
+// ============================================
 export async function sendPendingEmail(reservation: ReservationData) {
   try {
     await resend.emails.send({
-      from: 'onboarding@resend.dev', // ← CHANGED THIS
+      from: 'onboarding@resend.dev',
       to: reservation.email,
       subject: 'Reservation Request Received - Club Grille',
       html: `
@@ -92,7 +221,7 @@ export async function sendApprovedEmail(reservation: ReservationData) {
 
   try {
     await resend.emails.send({
-      from: 'onboarding@resend.dev', // ← CHANGED THIS
+      from: 'onboarding@resend.dev',
       to: reservation.email,
       subject: 'Reservation Confirmed! - Club Grille',
       html: `
@@ -188,7 +317,7 @@ export async function sendRejectedEmail(reservation: ReservationData) {
 
   try {
     await resend.emails.send({
-      from: 'onboarding@resend.dev', // ← CHANGED THIS
+      from: 'onboarding@resend.dev',
       to: reservation.email,
       subject: 'Reservation Update - Club Grille',
       html: `
