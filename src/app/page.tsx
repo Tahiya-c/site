@@ -18,13 +18,13 @@ import { menuItems as fullMenuItems } from "@/data/menu";
 import Link from "next/link";
 
 import ReservationForm from "./reservations/ReservationForm";
+
 // ------------------------------------
 // REUSABLE HELPERS
 // ------------------------------------
 const scrollTo = (id: string) =>
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
-// UPDATED: ReservationDialog now uses the actual ReservationForm component
 const ReservationDialog = ({ children }: { children: React.ReactNode }) => (
   <Dialog>
     <DialogTrigger asChild>{children}</DialogTrigger>
@@ -35,14 +35,13 @@ const ReservationDialog = ({ children }: { children: React.ReactNode }) => (
           Book your table at Club Grille for an unforgettable dining experience.
         </DialogDescription>
       </DialogHeader>
-      {/* REPLACED: Now using the actual ReservationForm component */}
       <ReservationForm />
     </DialogContent>
   </Dialog>
 );
 
 // ------------------------------------
-// STATIC DATA (outside component)
+// STATIC DATA
 // ------------------------------------
 const galleryImages = [
   { type: "image", label: "Meat Heaven - BDT 1830" },
@@ -56,33 +55,22 @@ const atmosphereFeatures = [
   {
     icon: Lightbulb,
     title: "Warm Ambient Lighting",
-    description:
-      "Soft Edison bulbs and indirect lighting create an inviting, cozy atmosphere perfect for any occasion.",
+    description: "Soft Edison bulbs and indirect lighting create an inviting, cozy atmosphere perfect for any occasion.",
   },
   {
     icon: Sofa,
     title: "Premium Comfort",
-    description:
-      "Plush leather seating and thoughtfully designed spaces ensure your complete comfort.",
+    description: "Plush leather seating and thoughtfully designed spaces ensure your complete comfort.",
   },
   {
     icon: Users,
     title: "Perfect for Groups",
-    description:
-      "Tables for two or spacious seating for celebrations with friends and family.",
+    description: "Tables for two or spacious seating for celebrations with friends and family.",
   },
 ];
 
 const quickLinks = ["Home", "About Us", "Menu", "Gallery", "Reviews"];
 
-// Map icon names to actual components
-const iconMap = {
-  Flame: Flame,
-  Star: Star,
-  Utensils: Utensils,
-} as const;
-
-// Map badge types to display text
 const badgeMap = {
   bestseller: "Best Seller",
   premium: "Premium",
@@ -96,7 +84,7 @@ const badgeColorMap = {
 } as const;
 
 // ------------------------------------
-// INTEGRATED NAVBAR COMPONENT
+// NAVBAR COMPONENT
 // ------------------------------------
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -105,8 +93,6 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 w-full bg-black/80 text-white z-50 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        
-        {/* LOGO */}
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center">
             <Utensils className="w-5 h-5 text-white" />
@@ -116,7 +102,6 @@ const Navbar = () => {
           </span>
         </div>
 
-        {/* DESKTOP NAV LINKS */}
         <div className="hidden md:flex items-center gap-6">
           {["home", "about", "menu", "gallery", "reservations"].map((id) => (
             <a
@@ -132,7 +117,6 @@ const Navbar = () => {
             </a>
           ))}
 
-          {/* DESKTOP CART */}
           <div className="relative">
             <CartSheet />
             {totalCount > 0 && (
@@ -142,17 +126,12 @@ const Navbar = () => {
             )}
           </div>
           
-          {/* RESERVATION BUTTON - Uses ReservationDialog */}
           <ReservationDialog>
-            <Button className="bg-red-800 hover:bg-red-700">
-              Reserve Now
-            </Button>
+            <Button className="bg-red-800 hover:bg-red-700">Reserve Now</Button>
           </ReservationDialog>
         </div>
 
-        {/* MOBILE MENU + CART */}
         <div className="flex md:hidden items-center gap-4">
-          {/* MOBILE CART */}
           <div className="relative">
             <CartSheet />
             {totalCount > 0 && (
@@ -162,7 +141,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* MOBILE MENU TOGGLE */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -173,7 +151,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-black/90 backdrop-blur-md border-t border-white/10 p-4 space-y-4">
           {["home", "about", "menu", "gallery", "reservations"].map((id) => (
@@ -193,11 +170,8 @@ const Navbar = () => {
           
           <Separator className="bg-neutral-800" />
           
-          {/* MOBILE RESERVATION BUTTON - Uses ReservationDialog */}
           <ReservationDialog>
-            <Button className="bg-red-800 hover:bg-red-700 w-full">
-              Reserve Table
-            </Button>
+            <Button className="bg-red-800 hover:bg-red-700 w-full">Reserve Table</Button>
           </ReservationDialog>
         </div>
       )}
@@ -221,16 +195,8 @@ export default function RestaurantWebsite() {
     });
   };
 
-  const displayMenuItems = fullMenuItems.map((item) => ({
-    ...item,
-    icon: iconMap[item.id === 'sirloin' ? 'Flame' : item.id === 'striploin' ? 'Star' : 'Utensils'],
-    tag: item.category === 'steak' ? 'Signature' : item.category === 'chicken' ? 'Popular' : 'Premium',
-  }));
-
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans">
-      
-      {/* INTEGRATED NAVBAR */}
       <Navbar />
 
       {/* HERO SECTION */}
@@ -257,7 +223,6 @@ export default function RestaurantWebsite() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              {/* HERO RESERVATION BUTTON - Uses ReservationDialog */}
               <ReservationDialog>
                 <Button size="lg" className="bg-red-800 hover:bg-red-700 text-lg px-8 py-6">
                   Reserve Your Table <ArrowRight className="ml-2 h-5 w-5" />
@@ -282,7 +247,7 @@ export default function RestaurantWebsite() {
         </div>
       </section>
 
-      {/* MENU SECTION */}
+      {/* MENU SECTION - FIXED TO SHOW IMAGES */}
       <section id="menu" className="py-16 sm:py-24 bg-gradient-to-b from-neutral-900 to-red-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
@@ -297,21 +262,45 @@ export default function RestaurantWebsite() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            {displayMenuItems.map((item) => (
+            {fullMenuItems.map((item) => (
               <Card 
                 key={item.id}
-                className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2"
+                className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2 overflow-hidden"
               >
+                {/* BADGE */}
                 {item.badge && (
                   <div className={`absolute top-4 right-4 z-10 ${badgeColorMap[item.badge]} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
                     {badgeMap[item.badge]}
                   </div>
                 )}
-                <CardHeader>
-                  <div className="h-48 sm:h-64 bg-gradient-to-br from-amber-900 to-neutral-900 rounded-t-lg flex items-center justify-center">
-                    <item.icon className="h-24 w-24 text-amber-600 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </CardHeader>
+
+                {/* IMAGE DISPLAY - THIS IS THE FIX */}
+                <div className="relative h-48 sm:h-64 overflow-hidden bg-neutral-900">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        // Fallback icon if image fails
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent && !parent.querySelector('.fallback-icon')) {
+                          const fallback = document.createElement('div');
+                          fallback.className = 'fallback-icon absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900';
+                          fallback.innerHTML = '<svg class="h-24 w-24 text-amber-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>';
+                          parent.appendChild(fallback);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900">
+                      <Utensils className="h-24 w-24 text-amber-600 opacity-50" />
+                    </div>
+                  )}
+                </div>
+
                 <CardContent className="p-6">
                   <CardTitle className="text-2xl mb-2">{item.name}</CardTitle>
                   <p className="text-amber-600 font-bold text-lg mb-3">BDT {item.price}</p>
@@ -320,8 +309,17 @@ export default function RestaurantWebsite() {
                   </CardDescription>
                   <div className="flex items-center justify-between mt-6">
                     <div className="flex items-center gap-2">
-                      <item.icon className="h-5 w-5 text-amber-600" />
-                      <span className="font-semibold">{item.tag}</span>
+                      {item.category === 'steak' ? (
+                        <Flame className="h-5 w-5 text-amber-600" />
+                      ) : item.category === 'chicken' ? (
+                        <Star className="h-5 w-5 text-amber-600" />
+                      ) : (
+                        <Utensils className="h-5 w-5 text-amber-600" />
+                      )}
+                      <span className="font-semibold">
+                        {item.category === 'steak' ? 'Signature' : 
+                         item.category === 'chicken' ? 'Popular' : 'Premium'}
+                      </span>
                     </div>
                     <Button 
                       className="bg-amber-700 hover:bg-amber-600"
@@ -474,7 +472,6 @@ export default function RestaurantWebsite() {
               </CardDescription>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12">
-                {/* CTA RESERVATION BUTTON - Uses ReservationDialog */}
                 <ReservationDialog>
                   <Button size="lg" className="bg-amber-700 hover:bg-amber-600 px-8 py-6">
                     Reserve Your Table <ChevronRight className="ml-2 h-5 w-5" />
@@ -508,7 +505,6 @@ export default function RestaurantWebsite() {
       <footer className="bg-neutral-950 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-4 gap-8 sm:gap-12 mb-8 sm:mb-12">
-            {/* Logo & Description */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center">
@@ -528,7 +524,6 @@ export default function RestaurantWebsite() {
               </div>
             </div>
 
-            {/* Quick Links */}
             <div>
               <h3 className="font-bold text-lg mb-4">Quick Links</h3>
               <ul className="space-y-3 text-neutral-400">
@@ -550,7 +545,6 @@ export default function RestaurantWebsite() {
               </ul>
             </div>
 
-            {/* Contact Info */}
             <div>
               <h3 className="font-bold text-lg mb-4">Contact Info</h3>
               <ul className="space-y-4 text-neutral-400">
@@ -569,7 +563,6 @@ export default function RestaurantWebsite() {
               </ul>
             </div>
 
-            {/* Opening Hours */}
             <div>
               <h3 className="font-bold text-lg mb-4">Opening Hours</h3>
               <div className="space-y-3 text-neutral-400">
@@ -581,7 +574,6 @@ export default function RestaurantWebsite() {
                   <span>Fri - Sun:</span>
                   <span className="text-amber-600 font-semibold">12PM - 12AM</span>
                 </div>
-                {/* FOOTER RESERVATION BUTTON - Uses ReservationDialog */}
                 <ReservationDialog>
                   <Button className="w-full bg-red-800 hover:bg-red-700 mt-4">
                     <Calendar className="mr-2 h-5 w-5" />
