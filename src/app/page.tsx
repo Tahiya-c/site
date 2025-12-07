@@ -224,7 +224,7 @@ export default function RestaurantWebsite() {
   const displayMenuItems = fullMenuItems.map((item) => ({
     ...item,
     icon: iconMap[item.id === 'sirloin' ? 'Flame' : item.id === 'striploin' ? 'Star' : 'Utensils'],
-    tag: item.category === 'steaks' ? 'Signature' : item.category === 'chicken' ? 'Popular' : 'Premium',
+    tag: item.category === 'steak' ? 'Signature' : item.category === 'chicken' ? 'Popular' : 'Premium',
   }));
 
   return (
