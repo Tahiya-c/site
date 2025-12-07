@@ -37,3 +37,13 @@ model Reservation {
   status    String   @default("pending")  // "pending", "approved", "rejected"
   createdAt DateTime @default(now())
 }
+
+model Rating {
+  id        String   @id @default(cuid())
+  orderId   String
+  rating    Int      // 1-5 stars
+  feedback  String?  // Optional text feedback
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}

@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { sendOrderCompletionEmail } from "@/lib/email";
 
 // ✅ UPDATE order status
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { status } = await request.json();
-    const { id } = params;
+    const { id } = await context.params;
 
     if (!status) {
       return NextResponse.json(
@@ -30,6 +31,26 @@ export async function PATCH(
       data: { status },
     });
 
+    // 🎉 Send completion email when order is marked complete
+    if (status === 'completed') {
+      try {
+        await sendOrderCompletionEmail({
+          id: order.id,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          items: order.items as any,
+          subtotal: order.subtotal,
+          tax: order.tax,
+          total: order.total,
+          deliveryAddress: order.deliveryAddress,
+        });
+        console.log('✅ Completion email sent to', order.customerEmail);
+      } catch (emailError) {
+        console.error('❌ Failed to send completion email:', emailError);
+        // Don't fail the status update if email fails
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
       order,
@@ -48,10 +69,10 @@ export async function PATCH(
 // ✅ DELETE single order
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     await prisma.order.delete({
       where: { id },

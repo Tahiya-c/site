@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, Users, ShoppingBag, MapPin, Phone, Mail, Package, DollarSign, Trash2, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Users, ShoppingBag, MapPin, Phone, Mail, Package, DollarSign, Trash2, RefreshCw, Star, MessageSquare } from 'lucide-react';
 
 interface Reservation {
   id: string;
@@ -38,10 +38,19 @@ interface Order {
   createdAt: string;
 }
 
+interface Rating {
+  id: string;
+  orderId: string;
+  rating: number;
+  feedback: string | null;
+  createdAt: string;
+}
+
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'reservations' | 'orders'>('reservations');
+  const [activeTab, setActiveTab] = useState<'reservations' | 'orders' | 'ratings'>('reservations');
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -71,6 +80,20 @@ export default function AdminPanel() {
       const ordRes = await fetch('/api/orders');
       const ordData = await ordRes.json();
       setOrders(ordData.orders || []);
+
+      try {
+        const ratRes = await fetch('/api/ratings');
+        if (ratRes.ok) {
+          const ratData = await ratRes.json();
+          setRatings(ratData.ratings || []);
+        } else {
+          console.warn('Ratings API returned error:', ratRes.status);
+          setRatings([]);
+        }
+      } catch (ratError) {
+        console.warn('Could not fetch ratings:', ratError);
+        setRatings([]);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -167,6 +190,10 @@ export default function AdminPanel() {
     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
+  const sortedRatings = [...ratings].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   const resCounts = {
     pending: reservations.filter(r => r.status === 'pending').length,
     approved: reservations.filter(r => r.status === 'approved').length,
@@ -178,6 +205,16 @@ export default function AdminPanel() {
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready: orders.filter(o => o.status === 'ready').length,
     completed: orders.filter(o => o.status === 'completed').length,
+  };
+
+  const ratingStats = {
+    total: ratings.length,
+    average: ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1) : '0.0',
+    fiveStar: ratings.filter(r => r.rating === 5).length,
+    fourStar: ratings.filter(r => r.rating === 4).length,
+    threeStar: ratings.filter(r => r.rating === 3).length,
+    twoStar: ratings.filter(r => r.rating === 2).length,
+    oneStar: ratings.filter(r => r.rating === 1).length,
   };
 
   if (loading && orders.length === 0 && reservations.length === 0) {
@@ -196,7 +233,7 @@ export default function AdminPanel() {
             <h1 className="text-4xl font-bold text-white flex items-center gap-3 mb-2">
               🔥 Club Grille Admin Panel
             </h1>
-            <p className="text-neutral-400">Manage reservations and orders</p>
+            <p className="text-neutral-400">Manage reservations, orders, and customer feedback</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -252,6 +289,17 @@ export default function AdminPanel() {
                 {orderCounts.pending}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('ratings')}
+            className={`pb-4 px-6 font-semibold transition-all ${
+              activeTab === 'ratings'
+                ? 'text-amber-500 border-b-2 border-amber-500'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Star className="inline mr-2 h-5 w-5" />
+            Ratings & Feedback
           </button>
         </div>
 
@@ -532,6 +580,128 @@ export default function AdminPanel() {
                 <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-12 text-center">
                   <ShoppingBag className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
                   <p className="text-neutral-400 text-lg">No orders yet</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'ratings' && (
+          <>
+            <div className="grid grid-cols-4 gap-6 mb-8">
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">Total Ratings</p>
+                    <p className="text-3xl font-bold text-white">{ratingStats.total}</p>
+                  </div>
+                  <Star className="h-12 w-12 text-amber-500" />
+                </div>
+              </div>
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">Average Rating</p>
+                    <p className="text-3xl font-bold text-amber-400">{ratingStats.average} ⭐</p>
+                  </div>
+                  <MessageSquare className="h-12 w-12 text-amber-500" />
+                </div>
+              </div>
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div>
+                  <p className="text-neutral-400 text-sm mb-2">Rating Distribution</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-neutral-300">5⭐</span>
+                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.fiveStar / ratingStats.total) * 100 : 0}%`}}></div>
+                      </div>
+                      <span className="text-neutral-400">{ratingStats.fiveStar}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-neutral-300">4⭐</span>
+                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.fourStar / ratingStats.total) * 100 : 0}%`}}></div>
+                      </div>
+                      <span className="text-neutral-400">{ratingStats.fourStar}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-neutral-300">3⭐</span>
+                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
+                        <div className="bg-yellow-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.threeStar / ratingStats.total) * 100 : 0}%`}}></div>
+                      </div>
+                      <span className="text-neutral-400">{ratingStats.threeStar}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-neutral-400 text-sm">With Feedback</p>
+                    <p className="text-3xl font-bold text-purple-400">
+                      {ratings.filter(r => r.feedback).length}
+                    </p>
+                  </div>
+                  <MessageSquare className="h-12 w-12 text-purple-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {sortedRatings.map((rating) => (
+                <div key={rating.id} className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                      {rating.rating}⭐
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-5 w-5 ${
+                                star <= rating.rating
+                                  ? 'fill-amber-500 text-amber-500'
+                                  : 'text-neutral-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-neutral-500 text-sm">
+                          {formatDate(rating.createdAt)} • {formatTime(rating.createdAt)}
+                        </span>
+                      </div>
+
+                      {rating.feedback ? (
+                        <div className="bg-neutral-900 rounded-lg p-4 mt-3">
+                          <div className="flex items-start gap-2">
+                            <MessageSquare className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-neutral-300 text-sm leading-relaxed">{rating.feedback}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-neutral-500 text-sm italic">No written feedback provided</p>
+                      )}
+
+                      <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+                        <Package className="h-4 w-4" />
+                        <span>Order ID: {rating.orderId.slice(0, 8)}...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {sortedRatings.length === 0 && (
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-12 text-center">
+                  <Star className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
+                  <p className="text-neutral-400 text-lg">No ratings yet</p>
+                  <p className="text-neutral-500 text-sm mt-2">
+                    Customer ratings will appear here after they complete orders
+                  </p>
                 </div>
               )}
             </div>
