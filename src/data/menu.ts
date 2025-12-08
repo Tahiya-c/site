@@ -3,8 +3,8 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category: 'steak' | 'appetizer' | 'chicken';
-  image: string;
+  category: 'steak' | 'appetizer' | 'chicken' | 'sides' | 'sauces' | 'margaritas-mojitos' | 'shakes-smoothies' | 'soft-drinks';
+  image?: string;
   badge?: 'bestseller' | 'premium' | 'popular';
 }
 
@@ -38,6 +38,13 @@ export const menuItems: MenuItem[] = [
 
   // APPETIZERS
   {
+    id: "potato-wedges",
+    name: "Potato Wedges",
+    description: "Golden crispy potato wedges topped with dried mixed herbs served with hot chili sauce",
+    price: 200,
+    category: "appetizer",
+  },
+  {
     id: "spicy-mushroom",
     name: "Spicy Mushroom",
     description: "Evenly cut slices of mushrooms sautéed with spicy sauce & garlic butter",
@@ -46,21 +53,43 @@ export const menuItems: MenuItem[] = [
     image: "/menu/image4.webp",
   },
   {
-    id: "chicken-wings",
-    name: "Chicken Wings",
-    description: "6 pcs - Hot chicken wings topped with rich & savory bbq sauce",
-    price: 300,
-    category: "appetizer",
-    image: "/menu/image5.webp",
-    badge: "popular",
-  },
-  {
     id: "poutine",
     name: "Poutine",
     description: "Crispy potato topped with rich beef sauce & milky mozzarella baked",
     price: 450,
     category: "appetizer",
     image: "/menu/image6.webp",
+  },
+  {
+    id: "mozzarella-sticks",
+    name: "Mozzarella Sticks",
+    description: "5 pc - Milky mozzarella deep fried with bread crumbs topped with fried herbs",
+    price: 400,
+    category: "appetizer",
+  },
+  {
+    id: "sausage-twist",
+    name: "Sausage Twist",
+    description: "Frank sausages, deep fried with savory dough",
+    price: 200,
+    category: "appetizer",
+  },
+  {
+    id: "chicken-wings",
+    name: "Wings",
+    description: "6 pc - Hot chicken wings topped with rich & savory bbq sauce",
+    price: 300,
+    category: "appetizer",
+    image: "/menu/image5.webp",
+    badge: "popular",
+  },
+  {
+    id: "meat-envelope",
+    name: "Meat Envelope",
+    description: "5 pc - Crispy envelope stuffed with smoked cheesy chicken",
+    price: 350,
+    category: "appetizer",
+    image: "/menu/image9.webp",
   },
   {
     id: "bacon-cordon",
@@ -77,14 +106,6 @@ export const menuItems: MenuItem[] = [
     price: 450,
     category: "appetizer",
     image: "/menu/image8.webp",
-  },
-  {
-    id: "meat-envelope",
-    name: "Meat Envelope",
-    description: "5 pcs - Crispy envelope stuffed with smoked cheesy chicken",
-    price: 350,
-    category: "appetizer",
-    image: "/menu/image9.webp",
   },
 
   // CHICKEN
@@ -152,4 +173,308 @@ export const menuItems: MenuItem[] = [
     category: "chicken",
     image: "/menu/image17.webp",
   },
+
+  // SIDES
+  {
+    id: "baked-beans",
+    name: "Baked Beans",
+    description: "Slow-cooked beans in savory sauce",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "sauteed-mushroom",
+    name: "Sautéed Mushroom",
+    description: "Garlic butter mushrooms",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "mashed-potatoes",
+    name: "Mashed Potatoes",
+    description: "Creamy whipped potatoes",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "sauteed-vegetables",
+    name: "Sautéed Vegetables",
+    description: "Fresh seasonal vegetables",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "spaghetti",
+    name: "Spaghetti",
+    description: "Classic Italian pasta",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "mexican-rice",
+    name: "Mexican Rice",
+    description: "Spiced tomato rice",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "saffron-rice",
+    name: "Saffron Rice",
+    description: "Aromatic golden rice",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "wedges-side",
+    name: "Wedges",
+    description: "Crispy potato wedges",
+    price: 100,
+    category: "sides",
+  },
+  {
+    id: "corn-on-cob",
+    name: "Corn on the Cob",
+    description: "Grilled sweet corn",
+    price: 100,
+    category: "sides",
+  },
+
+  // SAUCES
+  {
+    id: "cheese-sauce",
+    name: "Cheese Sauce",
+    description: "Rich creamy cheese",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "roast-bacon-glaze",
+    name: "Roast Bacon Glaze",
+    description: "Smoky bacon flavor",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "jalapeno-mustard",
+    name: "Jalapeño Mustard",
+    description: "Spicy tangy kick",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "mushroom-sauce",
+    name: "Mushroom Sauce",
+    description: "Earthy mushroom",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "pepper-sauce",
+    name: "Pepper Sauce",
+    description: "Bold peppercorn",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "chipotle-aioli",
+    name: "Chipotle Aioli",
+    description: "Smoky garlic mayo",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "bbq-sauce",
+    name: "BBQ Sauce",
+    description: "Classic barbecue",
+    price: 100,
+    category: "sauces",
+  },
+  {
+    id: "hot-chili-sauce",
+    name: "Hot Chili Sauce",
+    description: "Fiery heat",
+    price: 100,
+    category: "sauces",
+  },
+
+  // MARGARITAS & MOJITOS
+  {
+    id: "classic-margarita",
+    name: "Classic Margarita",
+    description: "Traditional lime margarita",
+    price: 230,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "orange-margarita",
+    name: "Orange Margarita",
+    description: "Citrus orange blend",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "blue-lady-margarita",
+    name: "Blue Lady Margarita",
+    description: "Blue curaçao special",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "strawberry-margarita",
+    name: "Strawberry Margarita",
+    description: "Fresh strawberry blend",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "virgin-mojito",
+    name: "Virgin Mojito",
+    description: "Classic mint & lime",
+    price: 200,
+    category: "margaritas-mojitos",
+    badge: "popular",
+  },
+  {
+    id: "hawaiian-mojito",
+    name: "Hawaiian Mojito",
+    description: "Tropical pineapple twist",
+    price: 220,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "strawberry-mojito",
+    name: "Strawberry Mojito",
+    description: "Berry mint fusion",
+    price: 220,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "orange-mojito",
+    name: "Orange Mojito",
+    description: "Citrus mint cooler",
+    price: 220,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "imported-cocacola",
+    name: "Imported Coca-Cola",
+    description: "Premium imported cola",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "imported-sprite",
+    name: "Imported Sprite",
+    description: "Premium lemon-lime soda",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+  {
+    id: "imported-fanta",
+    name: "Imported Fanta",
+    description: "Premium orange soda",
+    price: 250,
+    category: "margaritas-mojitos",
+  },
+
+  // SHAKES & SMOOTHIES
+  {
+    id: "wild-mint-vanilla",
+    name: "Wild Mint Vanilla Shake",
+    description: "Refreshing mint vanilla blend",
+    price: 200,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "mango-shake",
+    name: "Mango Shake",
+    description: "Fresh tropical mango",
+    price: 200,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "strawberry-shake",
+    name: "Strawberry Shake",
+    description: "Creamy strawberry delight",
+    price: 200,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "pure-dark-shake",
+    name: "Pure Dark Shake",
+    description: "Rich chocolate indulgence",
+    price: 230,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "bloody-dragon",
+    name: "Bloody Dragon Smoothie",
+    description: "Dragon fruit power blend",
+    price: 300,
+    category: "shakes-smoothies",
+    badge: "premium",
+  },
+  {
+    id: "orange-julius",
+    name: "Orange Julius Smoothie",
+    description: "Classic orange cream",
+    price: 280,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "famous-strawberry",
+    name: "Famous Strawberry Smoothie",
+    description: "Signature berry blend",
+    price: 280,
+    category: "shakes-smoothies",
+  },
+  {
+    id: "monkey-lover",
+    name: "Monkey Lover Smoothie",
+    description: "Banana chocolate fusion",
+    price: 280,
+    category: "shakes-smoothies",
+  },
+
+  // SOFT DRINKS
+  {
+    id: "coke-sprite-fanta",
+    name: "Coke / Sprite / Fanta",
+    description: "Regular soft drinks",
+    price: 50,
+    category: "soft-drinks",
+  },
+  {
+    id: "ginger-ale",
+    name: "Ginger Ale",
+    description: "Refreshing ginger soda",
+    price: 350,
+    category: "soft-drinks",
+  },
+  {
+    id: "perrier",
+    name: "Perrier (330 ML)",
+    description: "Sparkling mineral water",
+    price: 250,
+    category: "soft-drinks",
+  },
+  {
+    id: "imported-can",
+    name: "Imported Can",
+    description: "Premium canned beverage",
+    price: 220,
+    category: "soft-drinks",
+  },
 ];
+
+// Helper to get categories
+export const categories = [
+  { id: 'steak', name: 'Steaks & Seafood', icon: '🥩' },
+  { id: 'chicken', name: 'Chicken Specialties', icon: '🍗' },
+  { id: 'appetizer', name: 'Appetizers', icon: '🍽️' },
+  { id: 'sides', name: 'Sides', icon: '🥗' },
+  { id: 'sauces', name: 'Sauces', icon: '🥫' },
+  { id: 'margaritas-mojitos', name: 'Margaritas & Mojitos', icon: '🍹' },
+  { id: 'shakes-smoothies', name: 'Shakes & Smoothies', icon: '🥤' },
+  { id: 'soft-drinks', name: 'Soft Drinks', icon: '🥤' },
+] as const;
