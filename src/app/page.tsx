@@ -14,10 +14,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CartSheet } from "@/components/cart/CartSheet";
 import { useCartStore } from "@/store/cartStore";
-import { menuItems as fullMenuItems } from "@/data/menu";
+import { menuItems as fullMenuItems, MenuItem } from "@/data/menu";
 import Link from "next/link";
 
 import ReservationForm from "./reservations/ReservationForm";
+import CompactMenuSection from "@/components/CompactMenuSection";
+import Smoke from "@/components/ui/smoke";
 
 // ------------------------------------
 // REUSABLE HELPERS
@@ -185,7 +187,7 @@ const Navbar = () => {
 export default function RestaurantWebsite() {
   const { addItem } = useCartStore();
 
-  const handleAddToCart = (item: typeof fullMenuItems[0]) => {
+  const handleAddToCart = (item: typeof fullMenuItems[number]) => {
     addItem({
       id: item.id,
       name: item.name,
@@ -199,12 +201,19 @@ export default function RestaurantWebsite() {
     <div className="min-h-screen bg-neutral-900 text-white font-sans">
       <Navbar />
 
-      {/* HERO SECTION */}
-      <section id="home" className="relative min-h-screen flex items-center justify-start pt-20">
+      {/* HERO SECTION WITH 3D SMOKE */}
+      <section id="home" className="relative min-h-screen flex items-center justify-start pt-20 overflow-hidden">
+        {/* Gradient overlays FIRST */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-0"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-amber-950/30 to-neutral-800 z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/30 z-0"></div>
+        
+        {/* Three.js Smoke ABOVE gradients */}
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          <Smoke />
+        </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
+        {/* Content on top */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
               <Separator className="w-12 bg-amber-600" />
@@ -247,6 +256,8 @@ export default function RestaurantWebsite() {
         </div>
       </section>
 
+      
+
       {/* MENU SECTION - FIXED TO SHOW IMAGES */}
       <section id="menu" className="py-16 sm:py-24 bg-gradient-to-b from-neutral-900 to-red-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -262,75 +273,77 @@ export default function RestaurantWebsite() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            {fullMenuItems.map((item) => (
-              <Card 
-                key={item.id}
-                className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2 overflow-hidden"
-              >
-                {/* BADGE */}
-                {item.badge && (
-                  <div className={`absolute top-4 right-4 z-10 ${badgeColorMap[item.badge]} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
-                    {badgeMap[item.badge]}
-                  </div>
-                )}
-
-                {/* IMAGE DISPLAY - THIS IS THE FIX */}
-                <div className="relative h-48 sm:h-64 overflow-hidden bg-neutral-900">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      onError={(e) => {
-                        // Fallback icon if image fails
-                        const target = e.currentTarget;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent && !parent.querySelector('.fallback-icon')) {
-                          const fallback = document.createElement('div');
-                          fallback.className = 'fallback-icon absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900';
-                          fallback.innerHTML = '<svg class="h-24 w-24 text-amber-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>';
-                          parent.appendChild(fallback);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900">
-                      <Utensils className="h-24 w-24 text-amber-600 opacity-50" />
+            {fullMenuItems
+              .filter(item => item.image) // ← Only show items WITH images
+              .map((item) => (
+                <Card 
+                  key={item.id}
+                  className="group bg-neutral-800 border-neutral-700 hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-2 overflow-hidden"
+                >
+                  {/* BADGE */}
+                  {item.badge && (
+                    <div className={`absolute top-4 right-4 z-10 ${badgeColorMap[item.badge]} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
+                      {badgeMap[item.badge]}
                     </div>
                   )}
-                </div>
 
-                <CardContent className="p-6">
-                  <CardTitle className="text-2xl mb-2">{item.name}</CardTitle>
-                  <p className="text-amber-600 font-bold text-lg mb-3">BDT {item.price}</p>
-                  <CardDescription className="text-neutral-400 mb-4">
-                    {item.description}
-                  </CardDescription>
-                  <div className="flex items-center justify-between mt-6">
-                    <div className="flex items-center gap-2">
-                      {item.category === 'steak' ? (
-                        <Flame className="h-5 w-5 text-amber-600" />
-                      ) : item.category === 'chicken' ? (
-                        <Star className="h-5 w-5 text-amber-600" />
-                      ) : (
-                        <Utensils className="h-5 w-5 text-amber-600" />
-                      )}
-                      <span className="font-semibold">
-                        {item.category === 'steak' ? 'Signature' : 
-                         item.category === 'chicken' ? 'Popular' : 'Premium'}
-                      </span>
-                    </div>
-                    <Button 
-                      className="bg-amber-700 hover:bg-amber-600"
-                      onClick={() => handleAddToCart(item)}
-                    >
-                      Add to Cart
-                    </Button>
+                  {/* IMAGE DISPLAY - THIS IS THE FIX */}
+                  <div className="relative h-48 sm:h-64 overflow-hidden bg-neutral-900">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          // Fallback icon if image fails
+                          const target = e.currentTarget;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector('.fallback-icon')) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'fallback-icon absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900';
+                            fallback.innerHTML = '<svg class="h-24 w-24 text-amber-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>';
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900 to-neutral-900">
+                        <Utensils className="h-24 w-24 text-amber-600 opacity-50" />
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                  <CardContent className="p-6">
+                    <CardTitle className="text-2xl mb-2">{item.name}</CardTitle>
+                    <p className="text-amber-600 font-bold text-lg mb-3">BDT {item.price}</p>
+                    <CardDescription className="text-neutral-400 mb-4">
+                      {item.description}
+                    </CardDescription>
+                    <div className="flex items-center justify-between mt-6">
+                      <div className="flex items-center gap-2">
+                        {item.category === 'steak' ? (
+                          <Flame className="h-5 w-5 text-amber-600" />
+                        ) : item.category === 'chicken' ? (
+                          <Star className="h-5 w-5 text-amber-600" />
+                        ) : (
+                          <Utensils className="h-5 w-5 text-amber-600" />
+                        )}
+                        <span className="font-semibold">
+                          {item.category === 'steak' ? 'Signature' : 
+                           item.category === 'chicken' ? 'Popular' : 'Premium'}
+                        </span>
+                      </div>
+                      <Button 
+                        className="bg-amber-700 hover:bg-amber-600"
+                        onClick={() => handleAddToCart(item)}
+                      >
+                        Add to Cart
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
 
           <div className="text-center mt-8 sm:mt-12">
@@ -344,6 +357,12 @@ export default function RestaurantWebsite() {
           </div>
         </div>
       </section>
+
+      {/* COMPACT MENU - Items without images */}
+      <CompactMenuSection 
+        menuItems={fullMenuItems}
+        onAddToCart={handleAddToCart}
+      />
 
       {/* ATMOSPHERE SECTION */}
       <section id="about" className="py-16 sm:py-24 bg-neutral-800">
