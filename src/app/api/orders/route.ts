@@ -38,7 +38,8 @@ export async function POST(request: Request) {
       tax,
       total,
       paymentMethod,
-      notes 
+      notes,
+      bkashData
     } = body;
 
     // Validate required fields
@@ -57,25 +58,82 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate bKash payment data if payment method is bKash
+    if (paymentMethod === 'bkash') {
+      if (!bkashData) {
+        return NextResponse.json(
+          { success: false, error: 'bKash payment details are required' },
+          { status: 400 }
+        );
+      }
+
+      const { customerBkashNumber, transactionId, paidAmount } = bkashData;
+
+      if (!customerBkashNumber || !transactionId || !paidAmount) {
+        return NextResponse.json(
+          { success: false, error: 'Incomplete bKash payment information' },
+          { status: 400 }
+        );
+      }
+
+      // Validate bKash number format (Bangladesh phone number)
+      const phoneRegex = /^(\+880|880|0)?1[3-9]\d{8}$/;
+      const cleanBkashNumber = customerBkashNumber.replace(/[\s\-]/g, '');
+      
+      if (!phoneRegex.test(cleanBkashNumber)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid bKash number format' },
+          { status: 400 }
+        );
+      }
+
+      // Validate transaction ID (at least 8 characters)
+      if (transactionId.trim().length < 8) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid transaction ID' },
+          { status: 400 }
+        );
+      }
+
+      // Validate paid amount matches total (with small tolerance for floating point)
+      const numericAmount = parseFloat(paidAmount);
+      if (isNaN(numericAmount) || Math.abs(numericAmount - total) > 0.01) {
+        return NextResponse.json(
+          { success: false, error: 'Paid amount does not match order total' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Prepare order data
+    const orderData: any = {
+      customerName,
+      customerEmail,
+      customerPhone,
+      deliveryAddress,
+      items,
+      subtotal,
+      tax,
+      total,
+      paymentMethod: paymentMethod || 'cash',
+      notes,
+      status: 'pending'
+    };
+
+    // Add bKash fields if payment method is bKash
+    if (paymentMethod === 'bkash' && bkashData) {
+      orderData.bkashNumber = bkashData.customerBkashNumber;
+      orderData.bkashTransactionId = bkashData.transactionId;
+      orderData.bkashAmount = parseFloat(bkashData.paidAmount);
+    }
+
     // Create order in database
     const order = await prisma.order.create({
-      data: {
-        customerName,
-        customerEmail,
-        customerPhone,
-        deliveryAddress,
-        items,
-        subtotal,
-        tax,
-        total,
-        paymentMethod,
-        notes,
-        status: 'pending' // Default status
-      },
+      data: orderData,
     });
 
-    // Send confirmation email
-    const emailResult = await sendOrderConfirmationEmail({
+    // Prepare email data with proper typing
+    const emailData: any = {
       id: order.id,
       customerName: order.customerName,
       customerEmail: order.customerEmail,
@@ -84,7 +142,24 @@ export async function POST(request: Request) {
       tax: order.tax,
       total: order.total,
       deliveryAddress: order.deliveryAddress,
-    });
+    };
+
+    // Only add optional fields if they exist
+    if (order.paymentMethod) {
+      emailData.paymentMethod = order.paymentMethod;
+    }
+    if (order.bkashNumber) {
+      emailData.bkashNumber = order.bkashNumber;
+    }
+    if (order.bkashTransactionId) {
+      emailData.bkashTransactionId = order.bkashTransactionId;
+    }
+    if (order.bkashAmount) {
+      emailData.bkashAmount = order.bkashAmount;
+    }
+
+    // Send confirmation email
+    const emailResult = await sendOrderConfirmationEmail(emailData);
 
     if (!emailResult.success) {
       console.warn('Order created but email failed:', emailResult.error);

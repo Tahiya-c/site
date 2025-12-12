@@ -1,11 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 // ============================================
 // TYPES
 // ============================================
-interface ReservationData {
+export interface ReservationData {
   name: string;
   email: string;
   date: Date;
@@ -14,13 +15,13 @@ interface ReservationData {
   message?: string | null;
 }
 
-interface OrderItem {
+export interface OrderItem {
   name: string;
   price: number;
   qty: number;
 }
 
-interface OrderData {
+export interface OrderData {
   id: string;
   customerName: string;
   customerEmail: string;
@@ -29,12 +30,18 @@ interface OrderData {
   tax: number;
   total: number;
   deliveryAddress: string;
+  paymentMethod?: string;
+  bkashNumber?: string;
+  bkashTransactionId?: string;
+  bkashAmount?: number;
 }
 
 // ============================================
 // ORDER CONFIRMATION EMAIL
 // ============================================
 export async function sendOrderConfirmationEmail(order: OrderData) {
+  const isBkashPayment = order.paymentMethod === 'bkash';
+  
   try {
     await resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -58,6 +65,8 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
             .item-qty { color: #666; font-size: 14px; }
             .item-price { font-weight: bold; color: #ff6b35; }
             .total-row { display: flex; justify-content: space-between; padding: 20px 0 0 0; margin-top: 15px; border-top: 2px solid #ff6b35; font-size: 18px; font-weight: bold; }
+            .payment-box { background: #f0f9ff; border: 2px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 8px; }
+            .bkash-box { background: #fdf2f8; border: 2px solid #ec4899; padding: 20px; margin: 20px 0; border-radius: 8px; }
             .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
           </style>
         </head>
@@ -95,6 +104,43 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
                   <span style="color: #ff6b35;">BDT ${order.total}</span>
                 </div>
               </div>
+
+              ${isBkashPayment ? `
+                <div class="bkash-box">
+                  <h3 style="margin-top: 0; color: #ec4899; display: flex; align-items: center; gap: 8px;">
+                    <span>📱</span> bKash Payment Details
+                  </h3>
+                  <div style="background: white; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                    <p style="margin: 8px 0;">
+                      <strong>Payment Method:</strong> 
+                      <span style="color: #ec4899; font-weight: 600;">bKash</span>
+                    </p>
+                    <p style="margin: 8px 0;">
+                      <strong>Customer bKash Number:</strong> 
+                      <span style="font-family: monospace;">${order.bkashNumber || 'N/A'}</span>
+                    </p>
+                    <p style="margin: 8px 0;">
+                      <strong>Transaction ID:</strong> 
+                      <span style="font-family: monospace; color: #059669;">${order.bkashTransactionId || 'N/A'}</span>
+                    </p>
+                    <p style="margin: 8px 0;">
+                      <strong>Amount Paid:</strong> 
+                      <span style="color: #059669; font-weight: 600;">BDT ${order.bkashAmount?.toFixed(2) || '0.00'}</span>
+                    </p>
+                  </div>
+                  <p style="margin-top: 15px; font-size: 14px; color: #be185d;">
+                    ✅ Your payment has been received and is being verified.
+                  </p>
+                </div>
+              ` : `
+                <div class="payment-box">
+                  <h3 style="margin-top: 0; color: #3b82f6;">💵 Payment Method</h3>
+                  <p style="margin: 0;">
+                    <strong>Cash on Delivery</strong><br>
+                    <span style="font-size: 14px; color: #64748b;">Please keep exact change ready: BDT ${order.total}</span>
+                  </p>
+                </div>
+              `}
 
               <p style="margin-top: 25px; padding: 15px; background: #fff3e0; border-left: 4px solid #ff6b35;">
                 ⏱️ <strong>Estimated preparation time:</strong> 20–30 minutes
@@ -142,7 +188,7 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
 }
 
 // ============================================
-// ORDER COMPLETION EMAIL (NEW)
+// ORDER COMPLETION EMAIL
 // ============================================
 export async function sendOrderCompletionEmail(order: OrderData) {
   const ratingUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/rate-order/${order.id}`;
@@ -169,7 +215,7 @@ export async function sendOrderCompletionEmail(order: OrderData) {
             .item-name { font-weight: 500; color: #333; }
             .item-qty { color: #666; font-size: 14px; }
             .item-price { font-weight: bold; color: #ff6b35; }
-            .total-row { display: flex; justify-content: space-between; padding: 20px 0 0 0; margin-top: 15px; border-top: 2px solid #ff6b35; font-size: 18px; font-weight: bold; }
+            .total-row { display: flex; justify-between; padding: 20px 0 0 0; margin-top: 15px; border-top: 2px solid #ff6b35; font-size: 18px; font-weight: bold; }
             .rating-box { background: #fff3e0; border: 2px solid #ff6b35; padding: 25px; margin: 20px 0; border-radius: 8px; text-align: center; }
             .rating-btn { display: inline-block; background: #ff6b35; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin: 5px; }
             .cta-btn { display: inline-block; background: #4CAF50; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; margin-top: 15px; }
@@ -289,7 +335,6 @@ export async function sendApprovedEmail(reservation: ReservationData) {
   }
 }
 
-
 // ============================================
 // RESERVATION REJECTED EMAIL
 // ============================================
@@ -302,9 +347,9 @@ export async function sendRejectedEmail(reservation: ReservationData) {
       html: `
         <h2>Reservation Update</h2>
         <p>Hi ${reservation.name},</p>
-        <p>We’re sorry to inform you that your reservation request could <strong>not be approved</strong>.</p>
+        <p>We're sorry to inform you that your reservation request could <strong>not be approved</strong>.</p>
 
-        <p>Please contact us if you’d like to choose another time.</p>
+        <p>Please contact us if you'd like to choose another time.</p>
 
         <p><strong>— The Club Grille Team</strong></p>
       `,
@@ -316,3 +361,13 @@ export async function sendRejectedEmail(reservation: ReservationData) {
     return { success: false, error };
   }
 }
+
+// ============================================
+// ADD THESE EXPORTS IF THEY'RE MISSING
+// ============================================
+export default {
+  sendOrderConfirmationEmail,
+  sendOrderCompletionEmail,
+  sendApprovedEmail,
+  sendRejectedEmail
+};

@@ -1,174 +1,132 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, Users, ShoppingBag, MapPin, Phone, Mail, Package, DollarSign, Trash2, RefreshCw, Star, MessageSquare } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Users, ShoppingBag, RefreshCw, Bell, Package, MapPin, Phone, Mail, Clock, CheckCircle, DollarSign } from "lucide-react";
 
-interface Reservation {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  date: string;
-  time: string;
-  guests: number;
-  message?: string | null;
-  status: string;
-  createdAt: string;
-}
-
-interface OrderItem {
-  name: string;
-  qty: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  deliveryAddress: string;
-  items: OrderItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
-  paymentMethod?: string;
-  notes?: string | null;
-  status: string;
-  createdAt: string;
-}
-
-interface Rating {
-  id: string;
-  orderId: string;
-  rating: number;
-  feedback: string | null;
-  createdAt: string;
-}
-
-export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'reservations' | 'orders' | 'ratings'>('reservations');
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [ratings, setRatings] = useState<Rating[]>([]);
+export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState<"orders" | "reservations">("orders");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [newOrders, setNewOrders] = useState<string[]>([]);
+  const [newReservations, setNewReservations] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      fetchData();
-      setLastRefresh(new Date());
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
-
-  const fetchData = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
     try {
-      const resRes = await fetch('/api/reservations');
-      const resData = await resRes.json();
-      setReservations(resData.reservations || []);
-
-      const ordRes = await fetch('/api/orders');
-      const ordData = await ordRes.json();
-      setOrders(ordData.orders || []);
-
-      try {
-        const ratRes = await fetch('/api/ratings');
-        if (ratRes.ok) {
-          const ratData = await ratRes.json();
-          setRatings(ratData.ratings || []);
-        } else {
-          console.warn('Ratings API returned error:', ratRes.status);
-          setRatings([]);
-        }
-      } catch (ratError) {
-        console.warn('Could not fetch ratings:', ratError);
-        setRatings([]);
+      // Fetch orders
+      const ordersRes = await fetch("/api/orders");
+      const ordersData = await ordersRes.json();
+      if (ordersData.success) {
+        const currentOrderIds = ordersData.orders?.map((o: any) => o.id) || [];
+        
+        // Add newly found orders to newOrders list if they're pending
+        ordersData.orders?.forEach((order: any) => {
+          if (order.status === "pending" && !newOrders.includes(order.id) && !orders.some(o => o.id === order.id)) {
+            setNewOrders(prev => [...prev, order.id]);
+          }
+        });
+        
+        setOrders(ordersData.orders || []);
       }
+
+      // Fetch reservations
+      const reservationsRes = await fetch("/api/reservations");
+      const reservationsData = await reservationsRes.json();
+      if (reservationsData.success) {
+        // Add newly found reservations to newReservations list if they're pending
+        reservationsData.reservations?.forEach((res: any) => {
+          if (res.status === "pending" && !newReservations.includes(res.id) && !reservations.some(r => r.id === res.id)) {
+            setNewReservations(prev => [...prev, res.id]);
+          }
+        });
+        
+        setReservations(reservationsData.reservations || []);
+      }
+
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     }
     setLoading(false);
+    setLastRefresh(new Date());
   };
 
-  const updateReservationStatus = async (id: string, status: 'approved' | 'rejected') => {
-    try {
-      await fetch(`/api/reservations/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error updating reservation:', error);
+  // Clear notifications when switching tabs
+  useEffect(() => {
+    if (activeTab === "orders") {
+      setNewOrders([]);
+    } else if (activeTab === "reservations") {
+      setNewReservations([]);
     }
-  };
+  }, [activeTab]);
 
   const updateOrderStatus = async (id: string, status: string) => {
-    try {
-      await fetch(`/api/orders/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error updating order:', error);
-    }
+    await fetch(`/api/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    fetchAllData();
+  };
+
+  const updateReservationStatus = async (id: string, status: string) => {
+    await fetch(`/api/reservations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    fetchAllData();
   };
 
   const deleteOrder = async (id: string) => {
-    if (!confirm('Remove this order from the panel? (It will still be saved in the database)')) return;
-    
-    try {
+    if (confirm("Are you sure you want to delete this order?")) {
       await fetch(`/api/orders/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting order:', error);
+      fetchAllData();
     }
   };
 
-  const clearCompletedOrders = async () => {
-    const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
-    
-    if (completedOrders.length === 0) {
-      alert('No completed or cancelled orders to clear!');
-      return;
-    }
-
-    if (!confirm(`Clear ${completedOrders.length} completed/cancelled orders from the panel?`)) return;
-
-    try {
-      await fetch('/api/orders/clear-completed', {
-        method: 'DELETE',
+  const deleteReservation = async (id: string) => {
+    if (confirm("Are you sure you want to delete this reservation?")) {
+      await fetch(`/api/reservations/${id}`, {
+        method: "DELETE",
       });
-      fetchData();
-    } catch (error) {
-      console.error('Error clearing orders:', error);
+      fetchAllData();
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'approved': case 'completed': return 'bg-green-500/20 text-green-400 border-green-500';
-      case 'rejected': case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'preparing': return 'bg-blue-500/20 text-blue-400 border-blue-500';
-      case 'ready': return 'bg-purple-500/20 text-purple-400 border-purple-500';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
+  const clearCompleted = async () => {
+    if (confirm("Clear all completed orders?")) {
+      await fetch("/api/orders/clear-completed", {
+        method: "DELETE",
+      });
+      fetchAllData();
     }
   };
+
+  useEffect(() => {
+    fetchAllData();
+    if (autoRefresh) {
+      const interval = setInterval(fetchAllData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh]);
+
+  // Order calculations
+  const pendingOrders = orders.filter((o: any) => o.status === "pending");
+  const preparingOrders = orders.filter((o: any) => o.status === "preparing");
+  const readyOrders = orders.filter((o: any) => o.status === "ready");
+  const completedOrders = orders.filter((o: any) => o.status === "completed");
+
+  // Reservation calculations
+  const pendingReservations = reservations.filter((r: any) => r.status === "pending");
+  const confirmedReservations = reservations.filter((r: any) => r.status === "confirmed");
+  const cancelledReservations = reservations.filter((r: any) => r.status === "cancelled");
 
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('en-US', {
@@ -186,64 +144,31 @@ export default function AdminPanel() {
     });
   };
 
-  const sortedOrders = [...orders].sort((a, b) => 
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
-
-  const sortedRatings = [...ratings].sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  const resCounts = {
-    pending: reservations.filter(r => r.status === 'pending').length,
-    approved: reservations.filter(r => r.status === 'approved').length,
-    rejected: reservations.filter(r => r.status === 'rejected').length,
-  };
-
-  const orderCounts = {
-    pending: orders.filter(o => o.status === 'pending').length,
-    preparing: orders.filter(o => o.status === 'preparing').length,
-    ready: orders.filter(o => o.status === 'ready').length,
-    completed: orders.filter(o => o.status === 'completed').length,
-  };
-
-  const ratingStats = {
-    total: ratings.length,
-    average: ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1) : '0.0',
-    fiveStar: ratings.filter(r => r.rating === 5).length,
-    fourStar: ratings.filter(r => r.rating === 4).length,
-    threeStar: ratings.filter(r => r.rating === 3).length,
-    twoStar: ratings.filter(r => r.rating === 2).length,
-    oneStar: ratings.filter(r => r.rating === 1).length,
-  };
-
-  if (loading && orders.length === 0 && reservations.length === 0) {
-    return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
-  }
+  // Sort orders: pending first, then by creation time (newest first)
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (a.status === "pending" && b.status !== "pending") return -1;
+    if (a.status !== "pending" && b.status === "pending") return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
+    <div className="min-h-screen bg-neutral-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-4xl font-bold text-white flex items-center gap-3 mb-2">
-              🔥 Club Grille Admin Panel
-            </h1>
-            <p className="text-neutral-400">Manage reservations, orders, and customer feedback</p>
+            <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+            <p className="text-neutral-400">Manage orders, reservations, and customer reviews</p>
           </div>
-          
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => fetchData()}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg flex items-center gap-2 border border-neutral-600"
+            <Button
+              onClick={fetchAllData}
+              variant="outline"
+              className="border-neutral-600 bg-white text-black hover:bg-neutral-200"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh Now
-            </button>
+            </Button>
             <div className="flex items-center gap-2 bg-neutral-800 px-4 py-2 rounded-lg border border-neutral-600">
               <input
                 type="checkbox"
@@ -253,458 +178,492 @@ export default function AdminPanel() {
                 className="w-4 h-4"
               />
               <label htmlFor="autoRefresh" className="text-white text-sm cursor-pointer">
-                Auto-refresh (10s)
+                Auto-refresh (30s)
               </label>
             </div>
             <span className="text-neutral-500 text-sm">
               Last: {formatTime(lastRefresh.toISOString())}
             </span>
+            {activeTab === "orders" && (
+              <Button
+                variant="destructive"
+                onClick={clearCompleted}
+                disabled={completedOrders.length === 0}
+              >
+                Clear Completed ({completedOrders.length})
+              </Button>
+            )}
           </div>
         </div>
 
+        {/* Tab Navigation */}
         <div className="flex gap-4 mb-8 border-b border-neutral-700">
           <button
-            onClick={() => setActiveTab('reservations')}
-            className={`pb-4 px-6 font-semibold transition-all ${
-              activeTab === 'reservations'
-                ? 'text-amber-500 border-b-2 border-amber-500'
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Users className="inline mr-2 h-5 w-5" />
-            Reservations
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`pb-4 px-6 font-semibold transition-all ${
-              activeTab === 'orders'
-                ? 'text-amber-500 border-b-2 border-amber-500'
-                : 'text-neutral-400 hover:text-white'
+            onClick={() => setActiveTab("orders")}
+            className={`pb-4 px-6 font-semibold transition-all flex items-center ${
+              activeTab === "orders"
+                ? "text-amber-500 border-b-2 border-amber-500"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
             <ShoppingBag className="inline mr-2 h-5 w-5" />
             Orders
-            {orderCounts.pending > 0 && (
-              <span className="ml-2 px-2 py-0.5 bg-red-600 text-white text-xs rounded-full">
-                {orderCounts.pending}
-              </span>
+            {newOrders.length > 0 && (
+              <Badge className="ml-2 bg-red-600 animate-pulse">
+                {newOrders.length}
+              </Badge>
             )}
           </button>
           <button
-            onClick={() => setActiveTab('ratings')}
-            className={`pb-4 px-6 font-semibold transition-all ${
-              activeTab === 'ratings'
-                ? 'text-amber-500 border-b-2 border-amber-500'
-                : 'text-neutral-400 hover:text-white'
+            onClick={() => setActiveTab("reservations")}
+            className={`pb-4 px-6 font-semibold transition-all flex items-center ${
+              activeTab === "reservations"
+                ? "text-amber-500 border-b-2 border-amber-500"
+                : "text-neutral-400 hover:text-white"
             }`}
           >
-            <Star className="inline mr-2 h-5 w-5" />
-            Ratings & Feedback
+            <Users className="inline mr-2 h-5 w-5" />
+            Reservations
+            {newReservations.length > 0 && (
+              <Badge className="ml-2 bg-red-600 animate-pulse">
+                {newReservations.length}
+              </Badge>
+            )}
           </button>
         </div>
 
-        {activeTab === 'reservations' && (
+        {/* ORDERS TAB */}
+        {activeTab === "orders" && (
           <>
-            <div className="grid grid-cols-3 gap-6 mb-8">
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">Pending</p>
-                    <p className="text-3xl font-bold text-yellow-400">{resCounts.pending}</p>
-                  </div>
-                  <Clock className="h-12 w-12 text-yellow-500" />
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="bg-yellow-950 border-2 border-yellow-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-yellow-400">
+                  {pendingOrders.length}
+                </div>
+                <div className="text-yellow-300 mt-2 font-semibold">
+                  🔔 Pending
+                </div>
+                <div className="text-yellow-400/70 text-xs mt-1">
+                  Awaiting confirmation
                 </div>
               </div>
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">Approved</p>
-                    <p className="text-3xl font-bold text-green-400">{resCounts.approved}</p>
-                  </div>
-                  <CheckCircle className="h-12 w-12 text-green-500" />
+
+              <div className="bg-blue-950 border-2 border-blue-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-blue-400">
+                  {preparingOrders.length}
+                </div>
+                <div className="text-blue-300 mt-2 font-semibold">
+                  👨‍🍳 Preparing
+                </div>
+                <div className="text-blue-400/70 text-xs mt-1">
+                  Being prepared
                 </div>
               </div>
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">Rejected</p>
-                    <p className="text-3xl font-bold text-red-400">{resCounts.rejected}</p>
-                  </div>
-                  <XCircle className="h-12 w-12 text-red-500" />
+
+              <div className="bg-purple-950 border-2 border-purple-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-purple-400">
+                  {readyOrders.length}
+                </div>
+                <div className="text-purple-300 mt-2 font-semibold">
+                  ✅ Ready
+                </div>
+                <div className="text-purple-400/70 text-xs mt-1">
+                  Ready for delivery
+                </div>
+              </div>
+
+              <div className="bg-green-950 border-2 border-green-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-green-400">
+                  {completedOrders.length}
+                </div>
+                <div className="text-green-300 mt-2 font-semibold">
+                  🎉 Completed
+                </div>
+                <div className="text-green-400/70 text-xs mt-1">
+                  Delivered & rated
                 </div>
               </div>
             </div>
 
-            <div className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-neutral-900 border-b border-neutral-700">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">CUSTOMER</th>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">CONTACT</th>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">DATE & TIME</th>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">GUESTS</th>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">STATUS</th>
-                    <th className="px-6 py-4 text-left text-neutral-400 font-semibold">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reservations.map((res) => (
-                    <tr key={res.id} className="border-b border-neutral-700 hover:bg-neutral-750">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">
-                            {res.name.charAt(0).toUpperCase()}
+            {/* All Orders in Horizontal Grid */}
+            {sortedOrders.length > 0 ? (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">
+                  All Orders ({orders.length})
+                </h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {sortedOrders.map((order: any) => (
+                    <div 
+                      key={order.id} 
+                      className={`border rounded-lg bg-neutral-950 text-white space-y-4 p-5 ${newOrders.includes(order.id) ? 'ring-2 ring-yellow-500' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="text-xl font-semibold">
+                            Order #{order.id.slice(-6).toUpperCase()}
+                          </h2>
+                          <p className="text-sm opacity-70">
+                            {new Date(order.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              order.status === "pending"
+                                ? "bg-yellow-600"
+                                : order.status === "preparing"
+                                ? "bg-blue-600"
+                                : order.status === "ready"
+                                ? "bg-purple-600"
+                                : "bg-green-600"
+                            }
+                          >
+                            {order.status.toUpperCase()}
+                          </Badge>
+                          {newOrders.includes(order.id) && (
+                            <Badge className="bg-red-600 animate-pulse">
+                              <Bell className="h-3 w-3" />
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Customer Info */}
+                      <div className="text-sm space-y-2 bg-neutral-900 p-3 rounded">
+                        <p className="flex items-center gap-2">
+                          <span className="opacity-70">👤</span>
+                          <span className="font-medium">{order.customerName}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 opacity-70" />
+                          <span className="text-sm">{order.customerEmail}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 opacity-70" />
+                          <span className="text-sm">{order.customerPhone}</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 opacity-70 mt-0.5" />
+                          <span className="text-sm">{order.deliveryAddress}</span>
+                        </p>
+                      </div>
+
+                      {/* Order Items */}
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-amber-400 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Order Items:
+                        </h3>
+                        {order.items.map((item: any, index: number) => (
+                          <div key={index} className="flex justify-between text-sm bg-neutral-900/50 p-2 rounded">
+                            <span>
+                              {item.name} × {item.qty}
+                            </span>
+                            <span className="font-medium">BDT {(item.price * item.qty).toFixed(2)}</span>
                           </div>
-                          <div>
-                            <p className="text-white font-medium">{res.name}</p>
-                            <p className="text-neutral-400 text-sm">{formatDate(res.createdAt)}</p>
+                        ))}
+                      </div>
+
+                      {/* Total */}
+                      <div className="border-t border-neutral-700 pt-3">
+                        <p className="text-lg font-semibold flex justify-between items-center">
+                          <span className="flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-amber-400" />
+                            Total:
+                          </span>
+                          <span className="text-amber-400">BDT {order.total.toFixed(2)}</span>
+                        </p>
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="bg-neutral-900 p-3 rounded">
+                        <h3 className="font-bold text-orange-400 mb-1">Payment Method</h3>
+                        <p className="capitalize">
+                          {order.paymentMethod === "bkash" ? "bKash" : "Cash on Delivery"}
+                        </p>
+                      </div>
+
+                      {/* bKash Details */}
+                      {order.paymentMethod === "bkash" && (
+                        <div className="p-3 border border-pink-600 rounded-lg bg-pink-950/30">
+                          <h3 className="font-bold text-pink-400 mb-2">
+                            📱 bKash Payment Details
+                          </h3>
+                          <div className="space-y-1 text-sm">
+                            <p>
+                              <span className="font-semibold">Customer bKash:</span>{" "}
+                              {order.bkashNumber || "N/A"}
+                            </p>
+                            <p>
+                              <span className="font-semibold">Transaction ID:</span>{" "}
+                              {order.bkashTransactionId || "N/A"}
+                            </p>
+                            <p>
+                              <span className="font-semibold">Paid Amount:</span>{" "}
+                              <span className="text-green-400 font-bold">
+                                BDT {order.bkashAmount?.toFixed(2) || "N/A"}
+                              </span>
+                            </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-neutral-300 text-sm flex items-center gap-2">
-                          <Mail className="h-4 w-4" /> {res.email}
-                        </p>
-                        <p className="text-neutral-400 text-sm flex items-center gap-2">
-                          <Phone className="h-4 w-4" /> {res.phone}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-white">{formatDate(res.date)}</p>
-                        <p className="text-neutral-400 text-sm">{res.time}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-white font-medium">{res.guests} guests</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(res.status)}`}>
-                          {res.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {res.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => updateReservationStatus(res.id, 'approved')}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-sm"
+                      )}
+
+                      {/* Notes */}
+                      {order.notes && (
+                        <div className="bg-neutral-900 p-3 rounded text-sm">
+                          <span className="opacity-70">Notes:</span> {order.notes}
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        {order.status === "pending" && (
+                          <>
+                            <Button
+                              onClick={() => updateOrderStatus(order.id, "preparing")}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
                             >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => updateReservationStatus(res.id, 'rejected')}
-                              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm"
+                              Start Preparing
+                            </Button>
+                            <Button
+                              onClick={() => deleteOrder(order.id)}
+                              variant="destructive"
+                              size="icon"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+
+                        {order.status === "preparing" && (
+                          <>
+                            <Button
+                              onClick={() => updateOrderStatus(order.id, "ready")}
+                              className="flex-1 bg-purple-600 hover:bg-purple-700"
+                            >
+                              Mark Ready
+                            </Button>
+                            <Button
+                              onClick={() => deleteOrder(order.id)}
+                              variant="destructive"
+                              size="icon"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+
+                        {order.status === "ready" && (
+                          <>
+                            <Button
+                              onClick={() => updateOrderStatus(order.id, "completed")}
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                            >
+                              Complete Order
+                            </Button>
+                            <Button
+                              onClick={() => deleteOrder(order.id)}
+                              variant="destructive"
+                              size="icon"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+
+                        {order.status === "completed" && (
+                          <Button
+                            onClick={() => deleteOrder(order.id)}
+                            variant="destructive"
+                            className="w-full"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove Order
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <ShoppingBag className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
+                <p className="text-neutral-400 text-xl">No orders yet</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* RESERVATIONS TAB */}
+        {activeTab === "reservations" && (
+          <>
+            {/* Status Boxes */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-yellow-950 border-2 border-yellow-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-yellow-400">
+                  {pendingReservations.length}
+                </div>
+                <div className="text-yellow-300 mt-2 font-semibold">
+                  ⏳ Pending
+                </div>
+                <div className="text-yellow-400/70 text-xs mt-1">
+                  Awaiting confirmation
+                </div>
+              </div>
+
+              <div className="bg-green-950 border-2 border-green-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-green-400">
+                  {confirmedReservations.length}
+                </div>
+                <div className="text-green-300 mt-2 font-semibold">
+                  ✅ Confirmed
+                </div>
+                <div className="text-green-400/70 text-xs mt-1">
+                  Ready for guests
+                </div>
+              </div>
+
+              <div className="bg-red-950 border-2 border-red-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-red-400">
+                  {cancelledReservations.length}
+                </div>
+                <div className="text-red-300 mt-2 font-semibold">
+                  ❌ Cancelled
+                </div>
+                <div className="text-red-400/70 text-xs mt-1">
+                  Not available
+                </div>
+              </div>
+            </div>
+
+            {/* All Reservations */}
+            {reservations.length > 0 ? (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">
+                  All Reservations ({reservations.length})
+                </h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {[...reservations].sort((a, b) => 
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                  ).map((reservation: any) => (
+                    <div 
+                      key={reservation.id} 
+                      className={`border rounded-lg bg-neutral-950 text-white space-y-4 p-5 ${newReservations.includes(reservation.id) ? 'ring-2 ring-yellow-500' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="text-xl font-semibold">
+                            Reservation #{reservation.id.slice(-6).toUpperCase()}
+                          </h2>
+                          <p className="text-sm opacity-70">
+                            {new Date(reservation.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              reservation.status === "pending"
+                                ? "bg-yellow-600"
+                                : reservation.status === "confirmed"
+                                ? "bg-green-600"
+                                : "bg-red-600"
+                            }
+                          >
+                            {reservation.status.toUpperCase()}
+                          </Badge>
+                          {newReservations.includes(reservation.id) && (
+                            <Badge className="bg-red-600 animate-pulse">
+                              <Bell className="h-3 w-3" />
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Customer Info */}
+                      <div className="text-sm space-y-2 bg-neutral-900 p-3 rounded">
+                        <p className="flex items-center gap-2">
+                          <span className="opacity-70">👤</span>
+                          <span className="font-medium">{reservation.name}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 opacity-70" />
+                          <span className="text-sm">{reservation.email}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 opacity-70" />
+                          <span className="text-sm">{reservation.phone}</span>
+                        </p>
+                      </div>
+
+                      {/* Reservation Details */}
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-amber-400">Reservation Details:</h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-neutral-900/50 p-3 rounded">
+                            <div className="opacity-70 text-xs mb-1">Date</div>
+                            <div className="font-medium">{formatDate(reservation.date)}</div>
+                          </div>
+                          <div className="bg-neutral-900/50 p-3 rounded">
+                            <div className="opacity-70 text-xs mb-1">Time</div>
+                            <div className="font-medium">{reservation.time}</div>
+                          </div>
+                        </div>
+                        <div className="bg-neutral-900/50 p-3 rounded">
+                          <div className="opacity-70 text-xs mb-1">Guests</div>
+                          <div className="font-medium text-lg">{reservation.guests} people</div>
+                        </div>
+                      </div>
+
+                      {/* Special Requests */}
+                      {reservation.message && (
+                        <div className="bg-neutral-900 p-3 rounded text-sm">
+                          <span className="opacity-70">Special Requests:</span> {reservation.message}
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        {reservation.status === "pending" && (
+                          <>
+                            <Button
+                              onClick={() => updateReservationStatus(reservation.id, "confirmed")}
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              onClick={() => updateReservationStatus(reservation.id, "cancelled")}
+                              variant="destructive"
+                              className="flex-1"
                             >
                               Reject
-                            </button>
-                          </div>
+                            </Button>
+                          </>
                         )}
-                        {res.status !== 'pending' && (
-                          <span className="text-neutral-500 text-sm">✓ Email sent</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'orders' && (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <div className="grid grid-cols-4 gap-6 flex-1">
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-neutral-400 text-sm">Pending</p>
-                      <p className="text-3xl font-bold text-yellow-400">{orderCounts.pending}</p>
-                    </div>
-                    <Clock className="h-12 w-12 text-yellow-500" />
-                  </div>
-                </div>
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-neutral-400 text-sm">Preparing</p>
-                      <p className="text-3xl font-bold text-blue-400">{orderCounts.preparing}</p>
-                    </div>
-                    <Package className="h-12 w-12 text-blue-500" />
-                  </div>
-                </div>
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-neutral-400 text-sm">Ready</p>
-                      <p className="text-3xl font-bold text-purple-400">{orderCounts.ready}</p>
-                    </div>
-                    <CheckCircle className="h-12 w-12 text-purple-500" />
-                  </div>
-                </div>
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-neutral-400 text-sm">Completed</p>
-                      <p className="text-3xl font-bold text-green-400">{orderCounts.completed}</p>
-                    </div>
-                    <CheckCircle className="h-12 w-12 text-green-500" />
-                  </div>
-                </div>
-              </div>
-              
-              <button
-                onClick={clearCompletedOrders}
-                className="ml-6 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg flex items-center gap-2 whitespace-nowrap"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear Completed
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {sortedOrders.map((order, index) => (
-                <div key={order.id} className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-lg">
-                        #{index + 1}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-white">{order.customerName}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
-                            {order.status?.toUpperCase() || 'PENDING'}
-                          </span>
-                        </div>
                         
-                        <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-                          <div className="flex items-center gap-2 text-neutral-300">
-                            <Clock className="h-4 w-4 text-amber-500" />
-                            <span>{formatTime(order.createdAt)} • {formatDate(order.createdAt)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-neutral-300">
-                            <Phone className="h-4 w-4 text-amber-500" />
-                            <span>{order.customerPhone}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-neutral-300">
-                            <Mail className="h-4 w-4 text-amber-500" />
-                            <span>{order.customerEmail}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-2 text-neutral-300 mb-4">
-                          <MapPin className="h-4 w-4 text-amber-500 mt-1" />
-                          <span className="text-sm">{order.deliveryAddress}</span>
-                        </div>
-
-                        <div className="bg-neutral-900 rounded-lg p-4 mb-4">
-                          <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                            <Package className="h-4 w-4 text-amber-500" />
-                            Order Items:
-                          </h4>
-                          <div className="space-y-2">
-                            {order.items?.map((item, i) => (
-                              <div key={i} className="flex justify-between items-center text-sm">
-                                <span className="text-neutral-300">
-                                  {item.name} <span className="text-neutral-500">× {item.qty}</span>
-                                </span>
-                                <span className="text-white font-medium">BDT {item.price}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="border-t border-neutral-700 mt-3 pt-3 flex justify-between items-center">
-                            <span className="text-white font-bold flex items-center gap-2">
-                              <DollarSign className="h-4 w-4 text-amber-500" />
-                              Total:
-                            </span>
-                            <span className="text-amber-400 font-bold text-lg">BDT {order.total}</span>
-                          </div>
-                        </div>
-
-                        {order.notes && (
-                          <div className="bg-amber-900/20 border border-amber-700/50 rounded p-3 text-sm text-amber-200">
-                            <strong>Note:</strong> {order.notes}
-                          </div>
+                        {(reservation.status === "confirmed" || reservation.status === "cancelled") && (
+                          <Button
+                            onClick={() => deleteReservation(reservation.id)}
+                            variant="destructive"
+                            className="w-full"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove Reservation
+                          </Button>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'preparing')}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium"
-                        >
-                          Start Preparing
-                        </button>
-                      )}
-                      {order.status === 'preparing' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'ready')}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-medium"
-                        >
-                          Mark Ready
-                        </button>
-                      )}
-                      {order.status === 'ready' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'completed')}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-medium"
-                        >
-                          Complete Order
-                        </button>
-                      )}
-                      {order.status !== 'cancelled' && order.status !== 'completed' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-medium"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => deleteOrder(order.id)}
-                        className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded font-medium flex items-center justify-center gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {sortedOrders.length === 0 && (
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-12 text-center">
-                  <ShoppingBag className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
-                  <p className="text-neutral-400 text-lg">No orders yet</p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {activeTab === 'ratings' && (
-          <>
-            <div className="grid grid-cols-4 gap-6 mb-8">
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">Total Ratings</p>
-                    <p className="text-3xl font-bold text-white">{ratingStats.total}</p>
-                  </div>
-                  <Star className="h-12 w-12 text-amber-500" />
+                  ))}
                 </div>
               </div>
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">Average Rating</p>
-                    <p className="text-3xl font-bold text-amber-400">{ratingStats.average} ⭐</p>
-                  </div>
-                  <MessageSquare className="h-12 w-12 text-amber-500" />
-                </div>
+            ) : (
+              <div className="text-center py-20">
+                <Users className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
+                <p className="text-neutral-400 text-xl">No reservations yet</p>
               </div>
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div>
-                  <p className="text-neutral-400 text-sm mb-2">Rating Distribution</p>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-neutral-300">5⭐</span>
-                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.fiveStar / ratingStats.total) * 100 : 0}%`}}></div>
-                      </div>
-                      <span className="text-neutral-400">{ratingStats.fiveStar}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-neutral-300">4⭐</span>
-                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.fourStar / ratingStats.total) * 100 : 0}%`}}></div>
-                      </div>
-                      <span className="text-neutral-400">{ratingStats.fourStar}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-neutral-300">3⭐</span>
-                      <div className="flex-1 bg-neutral-900 rounded-full h-2">
-                        <div className="bg-yellow-500 h-2 rounded-full" style={{width: `${ratingStats.total > 0 ? (ratingStats.threeStar / ratingStats.total) * 100 : 0}%`}}></div>
-                      </div>
-                      <span className="text-neutral-400">{ratingStats.threeStar}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-neutral-400 text-sm">With Feedback</p>
-                    <p className="text-3xl font-bold text-purple-400">
-                      {ratings.filter(r => r.feedback).length}
-                    </p>
-                  </div>
-                  <MessageSquare className="h-12 w-12 text-purple-500" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {sortedRatings.map((rating) => (
-                <div key={rating.id} className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                      {rating.rating}⭐
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-5 w-5 ${
-                                star <= rating.rating
-                                  ? 'fill-amber-500 text-amber-500'
-                                  : 'text-neutral-600'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-neutral-500 text-sm">
-                          {formatDate(rating.createdAt)} • {formatTime(rating.createdAt)}
-                        </span>
-                      </div>
-
-                      {rating.feedback ? (
-                        <div className="bg-neutral-900 rounded-lg p-4 mt-3">
-                          <div className="flex items-start gap-2">
-                            <MessageSquare className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-neutral-300 text-sm leading-relaxed">{rating.feedback}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-neutral-500 text-sm italic">No written feedback provided</p>
-                      )}
-
-                      <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-                        <Package className="h-4 w-4" />
-                        <span>Order ID: {rating.orderId.slice(0, 8)}...</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {sortedRatings.length === 0 && (
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-12 text-center">
-                  <Star className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
-                  <p className="text-neutral-400 text-lg">No ratings yet</p>
-                  <p className="text-neutral-500 text-sm mt-2">
-                    Customer ratings will appear here after they complete orders
-                  </p>
-                </div>
-              )}
-            </div>
+            )}
           </>
         )}
       </div>

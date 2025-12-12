@@ -5,7 +5,30 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")  // ← THIS IS FINE IN PRISMA 6
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String   @unique
+  phone           String?
+  emailVerified   Boolean  @default(false)
+  phoneVerified   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  orders          Order[]
+  reservations    Reservation[]
+}
+
+model Restaurant {
+  id            String   @id @default(cuid())
+  name          String
+  address       String?
+  email         String?
+  phone         String?
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
 }
 
 model Order {
@@ -18,11 +41,20 @@ model Order {
   subtotal        Float
   tax             Float
   total           Float
-  paymentMethod   String?
+  paymentMethod   String   @default("cash")  // "cash" or "bkash"
   notes           String?
-  status          String   @default("pending") 
+  status          String   @default("pending")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  
+  // bKash Payment Fields (all optional - only used when paymentMethod = "bkash")
+  bkashNumber        String?  // Customer's bKash number
+  bkashTransactionId String?  // Transaction ID from bKash
+  bkashAmount        Float?   // Amount paid via bKash
+  
+  // Optional relation
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
 }
 
 model Reservation {
@@ -34,26 +66,29 @@ model Reservation {
   time      String
   guests    Int
   message   String?
-  status    String   @default("pending")  // "pending", "approved", "rejected"
+  status    String   @default("pending")
   createdAt DateTime @default(now())
+  
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 }
 
 model Rating {
   id        String   @id @default(cuid())
   orderId   String
-  rating    Int      // 1-5 stars
-  feedback  String?  // Optional text feedback
+  rating    Int
+  feedback  String?
   createdAt DateTime @default(now())
-
+  
   @@index([orderId])
 }
 
 model MenuItem {
-  id        String   @id @default(uuid())
-  name      String
+  id          String   @id @default(uuid())
+  name        String
   description String?
-  price     Float
-  image     String?
-  category  String
-  createdAt DateTime @default(now())
+  price       Float
+  image       String?
+  category    String
+  createdAt   DateTime @default(now())
 }
