@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowLeft, CreditCard, User, MapPin, Phone, Mail, Wallet, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, CreditCard, User, MapPin, Phone, Mail, Wallet, CheckCircle, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -22,10 +22,17 @@ export default function CheckoutPage() {
     address: "",
     notes: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bkash">("cod");
+  
+  // bKash payment details
+  const [bkashData, setBkashData] = useState({
+    customerBkashNumber: "",
+    transactionId: "",
+    paidAmount: "",
+  });
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  // ✅ NEW: Loading & success states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -35,6 +42,7 @@ export default function CheckoutPage() {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const tax = subtotal * 0.05;
   const total = subtotal + tax;
+  const grandTotal = total + 50;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -68,6 +76,31 @@ export default function CheckoutPage() {
       newErrors.address = "Address must be less than 200 characters";
     }
     
+    // bKash validation
+    if (paymentMethod === "bkash") {
+      const cleanBkashPhone = bkashData.customerBkashNumber.replace(/[\s\-]/g, '');
+      if (!bkashData.customerBkashNumber.trim()) {
+        newErrors.customerBkashNumber = "bKash number is required";
+      } else if (!phoneRegex.test(cleanBkashPhone)) {
+        newErrors.customerBkashNumber = "Please enter a valid bKash number";
+      }
+      
+      if (!bkashData.transactionId.trim()) {
+        newErrors.transactionId = "Transaction ID is required";
+      } else if (bkashData.transactionId.trim().length < 8) {
+        newErrors.transactionId = "Transaction ID must be at least 8 characters";
+      }
+      
+      const paidAmount = parseFloat(bkashData.paidAmount);
+      if (!bkashData.paidAmount.trim()) {
+        newErrors.paidAmount = "Paid amount is required";
+      } else if (isNaN(paidAmount) || paidAmount <= 0) {
+        newErrors.paidAmount = "Please enter a valid amount";
+      } else if (Math.abs(paidAmount - grandTotal) > 0.01) {
+        newErrors.paidAmount = `Amount should be BDT ${grandTotal.toFixed(2)}`;
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,49 +110,55 @@ export default function CheckoutPage() {
 
     if (!validateForm()) return;
     
-    // ✅ Prevent double submission
     if (isSubmitting || cooldownTime > 0) return;
 
     setIsSubmitting(true);
 
     try {
+      const orderData: any = {
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        deliveryAddress: formData.address,
+        items: items,
+        subtotal: subtotal,
+        tax: tax,
+        total: grandTotal,
+        paymentMethod: paymentMethod === "cod" ? "cash" : "bkash",
+        notes: formData.notes,
+      };
+
+      // Add bKash data if payment method is bKash
+      if (paymentMethod === "bkash") {
+        orderData.bkashData = {
+          customerBkashNumber: bkashData.customerBkashNumber,
+          transactionId: bkashData.transactionId,
+          paidAmount: parseFloat(bkashData.paidAmount),
+        };
+      }
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          customerName: formData.name,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-          deliveryAddress: formData.address,
-          items: items,
-          subtotal: subtotal,
-          tax: tax,
-          total: total + 50,
-          paymentMethod: paymentMethod === "cod" ? "cash" : "card",
-          notes: formData.notes,
-        }),
+        body: JSON.stringify(orderData),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Show error in a better way
         setErrors({ submit: data.error || "Failed to place order" });
         setIsSubmitting(false);
         return;
       }
 
-      // ✅ Show success message with email confirmation (NO ALERT!)
       setOrderSuccess(true);
       setSuccessMessage(data.message);
       setOrderId(data.orderId);
       
-      // Clear cart
       clearCart();
 
-      // ✅ Start 60-second cooldown
       setCooldownTime(60);
       const countdown = setInterval(() => {
         setCooldownTime((prev) => {
@@ -131,7 +170,6 @@ export default function CheckoutPage() {
         });
       }, 1000);
 
-      // Auto-redirect to home after 5 seconds
       setTimeout(() => {
         router.push("/");
       }, 5000);
@@ -165,7 +203,29 @@ export default function CheckoutPage() {
     setFormData({ ...formData, phone: value });
   };
 
-  // ✅ Success Screen
+  const handleBkashPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    value = value.replace(/\D/g, '');
+    if (value.startsWith('880')) {
+      value = '+' + value;
+    } else if (value.startsWith('0')) {
+      value = '+880' + value.substring(1);
+    } else if (value.length > 0 && !value.startsWith('+')) {
+      value = '+880' + value;
+    }
+    
+    if (value.length > 4) {
+      value = value.substring(0, 4) + ' ' + value.substring(4);
+    }
+    if (value.length > 9) {
+      value = value.substring(0, 9) + '-' + value.substring(9);
+    }
+    
+    setBkashData({ ...bkashData, customerBkashNumber: value });
+  };
+
+  // Success Screen
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-neutral-900 pt-20">
@@ -363,19 +423,95 @@ export default function CheckoutPage() {
                       </Button>
                       <Button
                         type="button"
-                        variant={paymentMethod === "card" ? "default" : "outline"}
-                        className={paymentMethod === "card" 
+                        variant={paymentMethod === "bkash" ? "default" : "outline"}
+                        className={paymentMethod === "bkash" 
                           ? "bg-amber-600 hover:bg-amber-500 text-white" 
                           : "border-neutral-600 hover:bg-neutral-700 text-neutral-300 hover:text-white"
                         }
-                        onClick={() => setPaymentMethod("card")}
+                        onClick={() => setPaymentMethod("bkash")}
                         disabled={isSubmitting}
                       >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Credit Card
+                        <Smartphone className="mr-2 h-4 w-4" />
+                        bKash
                       </Button>
                     </div>
                   </div>
+
+                  {/* bKash Payment Details - Expandable Section */}
+                  {paymentMethod === "bkash" && (
+                    <div className="border border-pink-600/30 rounded-lg p-6 bg-pink-950/20 space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Smartphone className="h-5 w-5 text-pink-500" />
+                        <h4 className="font-semibold text-white">bKash Payment Information</h4>
+                      </div>
+
+                      {/* Restaurant bKash Number */}
+                      <div className="bg-pink-900/30 border border-pink-700/50 rounded-lg p-4">
+                        <Label className="text-pink-300 text-sm">Send payment to this number:</Label>
+                        <p className="text-white font-mono text-lg mt-1">+880 1XXX-XXXXXX</p>
+                        <p className="text-neutral-400 text-xs mt-1">Restaurant bKash Account</p>
+                      </div>
+
+                      {/* Customer bKash Number */}
+                      <div className="space-y-2">
+                        <Label htmlFor="customerBkash" className="text-neutral-300">
+                          Your bKash Number *
+                        </Label>
+                        <Input
+                          id="customerBkash"
+                          placeholder="+880 1XXX-XXXXXX"
+                          value={bkashData.customerBkashNumber}
+                          onChange={handleBkashPhoneChange}
+                          disabled={isSubmitting}
+                          className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
+                        />
+                        {errors.customerBkashNumber && (
+                          <p className="text-sm text-red-400">{errors.customerBkashNumber}</p>
+                        )}
+                      </div>
+
+                      {/* Transaction ID */}
+                      <div className="space-y-2">
+                        <Label htmlFor="transactionId" className="text-neutral-300">
+                          Transaction ID *
+                        </Label>
+                        <Input
+                          id="transactionId"
+                          placeholder="e.g., 8A5B9C2D1E"
+                          value={bkashData.transactionId}
+                          onChange={(e) => setBkashData({ ...bkashData, transactionId: e.target.value })}
+                          disabled={isSubmitting}
+                          className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500 font-mono"
+                        />
+                        {errors.transactionId && (
+                          <p className="text-sm text-red-400">{errors.transactionId}</p>
+                        )}
+                      </div>
+
+                      {/* Paid Amount */}
+                      <div className="space-y-2">
+                        <Label htmlFor="paidAmount" className="text-neutral-300">
+                          Amount Paid (BDT) *
+                        </Label>
+                        <Input
+                          id="paidAmount"
+                          type="number"
+                          step="0.01"
+                          placeholder={grandTotal.toFixed(2)}
+                          value={bkashData.paidAmount}
+                          onChange={(e) => setBkashData({ ...bkashData, paidAmount: e.target.value })}
+                          disabled={isSubmitting}
+                          className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
+                        />
+                        {errors.paidAmount && (
+                          <p className="text-sm text-red-400">{errors.paidAmount}</p>
+                        )}
+                        <p className="text-xs text-neutral-400">
+                          Total amount due: BDT {grandTotal.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Error message display */}
                   {errors.submit && (
@@ -384,7 +520,7 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* ✅ Submit Button with Loading State */}
+                  {/* Submit Button with Loading State */}
                   <Button 
                     type="submit" 
                     className="w-full bg-amber-600 hover:bg-amber-500 text-white py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -400,7 +536,7 @@ export default function CheckoutPage() {
                     ) : (
                       <>
                         <CreditCard className="mr-2 h-5 w-5" />
-                        Place Order - BDT {(total + 50).toFixed(2)}
+                        Place Order - BDT {grandTotal.toFixed(2)}
                       </>
                     )}
                   </Button>
@@ -450,7 +586,7 @@ export default function CheckoutPage() {
 
                   <div className="flex justify-between text-xl font-bold">
                     <span className="text-white">Total</span>
-                    <span className="text-amber-400">BDT {(total + 50).toFixed(2)}</span>
+                    <span className="text-amber-400">BDT {grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>

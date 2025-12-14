@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Users, ShoppingBag, RefreshCw, Bell, Package, MapPin, Phone, Mail, Clock, CheckCircle, DollarSign } from "lucide-react";
@@ -14,6 +14,10 @@ export default function AdminPage() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [newOrders, setNewOrders] = useState<string[]>([]);
   const [newReservations, setNewReservations] = useState<string[]>([]);
+  
+  // ✅ FIX: Track seen IDs to prevent badge re-increment
+  const seenOrderIds = useRef<Set<string>>(new Set());
+  const seenReservationIds = useRef<Set<string>>(new Set());
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -22,12 +26,14 @@ export default function AdminPage() {
       const ordersRes = await fetch("/api/orders");
       const ordersData = await ordersRes.json();
       if (ordersData.success) {
-        const currentOrderIds = ordersData.orders?.map((o: any) => o.id) || [];
-        
-        // Add newly found orders to newOrders list if they're pending
+        // ✅ FIX: Only add to newOrders if truly new AND pending
         ordersData.orders?.forEach((order: any) => {
-          if (order.status === "pending" && !newOrders.includes(order.id) && !orders.some(o => o.id === order.id)) {
+          if (
+            order.status === "pending" && 
+            !seenOrderIds.current.has(order.id)
+          ) {
             setNewOrders(prev => [...prev, order.id]);
+            seenOrderIds.current.add(order.id);
           }
         });
         
@@ -38,10 +44,14 @@ export default function AdminPage() {
       const reservationsRes = await fetch("/api/reservations");
       const reservationsData = await reservationsRes.json();
       if (reservationsData.success) {
-        // Add newly found reservations to newReservations list if they're pending
+        // ✅ FIX: Only add to newReservations if truly new AND pending
         reservationsData.reservations?.forEach((res: any) => {
-          if (res.status === "pending" && !newReservations.includes(res.id) && !reservations.some(r => r.id === res.id)) {
+          if (
+            res.status === "pending" && 
+            !seenReservationIds.current.has(res.id)
+          ) {
             setNewReservations(prev => [...prev, res.id]);
+            seenReservationIds.current.add(res.id);
           }
         });
         
