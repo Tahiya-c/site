@@ -1,13 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdmin } from "@/lib/adminAuth";
 
-export async function POST(request: Request) {
+// ✅ CREATE reservation (admin only)
+export async function POST(req: NextRequest) {
+  // 🔐 Admin check
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
-    const body = await request.json();
-
+    const body = await req.json();
     const { name, email, phone, date, time, guests, message } = body;
 
-    // Validate required fields
     if (!name || !email || !phone || !date || !time || !guests) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
@@ -15,7 +19,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create reservation in database
     const reservation = await prisma.reservation.create({
       data: {
         name,
@@ -25,11 +28,11 @@ export async function POST(request: Request) {
         time,
         guests: Number(guests),
         message: message || null,
-        status: "pending", // lowercase to match your schema
+        status: "pending",
       },
     });
 
-    // TODO: Send automated email here (we'll implement this later)
+    // Optional: send automated email later
     // await sendPendingEmail(reservation);
 
     return NextResponse.json(
@@ -50,8 +53,12 @@ export async function POST(request: Request) {
   }
 }
 
-// Optional GET to fetch all reservations
-export async function GET() {
+// ✅ GET all reservations (admin only)
+export async function GET(req: NextRequest) {
+  // 🔐 Admin check
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const reservations = await prisma.reservation.findMany({
       orderBy: { createdAt: "desc" },

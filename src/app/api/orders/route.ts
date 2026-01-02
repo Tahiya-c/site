@@ -1,14 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { requireAdmin } from "@/lib/adminAuth";
 
-// ✅ GET - Fetch all orders for admin panel
-export async function GET() {
+// ✅ GET - Fetch all orders for admin panel (admin-only)
+export async function GET(req: NextRequest) {
+  // 🔐 Check admin authentication
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const orders = await prisma.order.findMany({
-      orderBy: {
-        createdAt: 'asc' // First come first served
-      }
+      orderBy: { createdAt: 'asc' } // First come first served
     });
 
     return NextResponse.json({ 
@@ -24,7 +27,7 @@ export async function GET() {
   }
 }
 
-// ✅ POST - Create new order (from checkout)
+// ✅ POST - Create new order (from checkout, public)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -95,7 +98,7 @@ export async function POST(request: Request) {
         );
       }
 
-      // Validate paid amount matches total (with small tolerance for floating point)
+      // Validate paid amount matches total (small tolerance)
       const numericAmount = parseFloat(paidAmount);
       if (isNaN(numericAmount) || Math.abs(numericAmount - total) > 0.01) {
         return NextResponse.json(
@@ -132,7 +135,7 @@ export async function POST(request: Request) {
       data: orderData,
     });
 
-    // Prepare email data with proper typing
+    // Prepare email data
     const emailData: any = {
       id: order.id,
       customerName: order.customerName,
@@ -144,19 +147,10 @@ export async function POST(request: Request) {
       deliveryAddress: order.deliveryAddress,
     };
 
-    // Only add optional fields if they exist
-    if (order.paymentMethod) {
-      emailData.paymentMethod = order.paymentMethod;
-    }
-    if (order.bkashNumber) {
-      emailData.bkashNumber = order.bkashNumber;
-    }
-    if (order.bkashTransactionId) {
-      emailData.bkashTransactionId = order.bkashTransactionId;
-    }
-    if (order.bkashAmount) {
-      emailData.bkashAmount = order.bkashAmount;
-    }
+    if (order.paymentMethod) emailData.paymentMethod = order.paymentMethod;
+    if (order.bkashNumber) emailData.bkashNumber = order.bkashNumber;
+    if (order.bkashTransactionId) emailData.bkashTransactionId = order.bkashTransactionId;
+    if (order.bkashAmount) emailData.bkashAmount = order.bkashAmount;
 
     // Send confirmation email
     const emailResult = await sendOrderConfirmationEmail(emailData);
