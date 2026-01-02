@@ -5,8 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Users, ShoppingBag, RefreshCw, Bell, Package, MapPin, Phone, Mail, Clock, CheckCircle, DollarSign } from "lucide-react";
 
+// ✅ LOGOUT FUNCTION
+async function handleLogout() {
+  const confirmLogout = confirm("Are you sure you want to log out?");
+  if (!confirmLogout) return;
+
+  try {
+    await fetch("/api/admin-logout", { method: "POST" });
+    window.location.href = "/login";
+  } catch (error) {
+    console.error("Logout failed:", error);
+    alert("Logout failed. Please try again.");
+  }
+}
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"orders" | "reservations">("orders");
+  const [activeTab, setActiveTab] = useState<
+  "orders" | "reservations" | "ratings"
+  >("orders");
   const [orders, setOrders] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,6 +187,28 @@ export default function AdminPage() {
             <p className="text-neutral-400">Manage orders, reservations, and customer reviews</p>
           </div>
           <div className="flex items-center gap-4">
+            {/* ✅ LOGOUT BUTTON ADDED HERE */}
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-4 w-4" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                />
+              </svg>
+              Logout
+            </button>
+
             <Button
               onClick={fetchAllData}
               variant="outline"
@@ -240,6 +278,20 @@ export default function AdminPage() {
               </Badge>
             )}
           </button>
+         <button
+          onClick={() => setActiveTab("ratings")}
+          className={`pb-4 px-6 font-semibold transition-all flex items-center ${
+            activeTab === "ratings"
+              ? "text-amber-500 border-b-2 border-amber-500"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          ⭐ Ratings
+        </button>
+
+
+
+
         </div>
 
         {/* ORDERS TAB */}

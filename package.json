@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "set NEXT_PRIVATE_TURBOPACK=0 && next dev",
+    "build": "next build",
+    "start": "next start",
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
