@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone', // ← ADD THIS LINE
+  output: 'standalone',
+  // Optional: Add if you have images
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
