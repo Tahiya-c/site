@@ -82,6 +82,13 @@ model Rating {
   
   @@index([orderId])
 }
+model Rating {
+  id        String   @id @default(cuid())
+  orderId   String   @unique  // ADD @unique HERE
+  rating    Int
+  feedback  String?
+  createdAt DateTime @default(now())
+}
 
 model MenuItem {
   id          String   @id @default(uuid())

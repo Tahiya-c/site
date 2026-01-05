@@ -13,13 +13,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // ALWAYS CREATE A NEW RATING (since multiple ratings per order are allowed)
     const newRating = await prisma.rating.create({
       data: {
         orderId,
         rating: parseInt(rating),
-        feedback: feedback || null,
+        feedback: feedback || "",
       },
     });
+
+    console.log("Created new rating for order:", orderId);
 
     return NextResponse.json({
       success: true,
@@ -31,6 +34,40 @@ export async function POST(request: Request) {
     console.error("Error saving rating:", error);
     return NextResponse.json(
       { success: false, error: "Failed to save rating" },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ GET all ratings - show only latest rating per order
+export async function GET() {
+  try {
+    // Get all ratings
+    const allRatings = await prisma.rating.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Filter to show only the latest rating per order
+    const latestRatingsMap = new Map();
+    
+    allRatings.forEach(rating => {
+      if (!latestRatingsMap.has(rating.orderId)) {
+        latestRatingsMap.set(rating.orderId, rating);
+      }
+    });
+
+    const latestRatings = Array.from(latestRatingsMap.values());
+
+    return NextResponse.json({
+      success: true,
+      ratings: latestRatings, // Only show latest per order
+      allRatings: allRatings, // Optional: include all for debugging
+      count: latestRatings.length,
+    });
+  } catch (error) {
+    console.error("Error fetching ratings:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch ratings" },
       { status: 500 }
     );
   }

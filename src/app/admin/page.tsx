@@ -19,19 +19,20 @@ async function handleLogout() {
   }
 }
 
+// ✅ CHANGE THIS LINE: Make sure it's default export
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
   "orders" | "reservations" | "ratings"
   >("orders");
   const [orders, setOrders] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [newOrders, setNewOrders] = useState<string[]>([]);
   const [newReservations, setNewReservations] = useState<string[]>([]);
   
-  // ✅ FIX: Track seen IDs to prevent badge re-increment
   const seenOrderIds = useRef<Set<string>>(new Set());
   const seenReservationIds = useRef<Set<string>>(new Set());
 
@@ -42,7 +43,6 @@ export default function AdminPage() {
       const ordersRes = await fetch("/api/orders");
       const ordersData = await ordersRes.json();
       if (ordersData.success) {
-        // ✅ FIX: Only add to newOrders if truly new AND pending
         ordersData.orders?.forEach((order: any) => {
           if (
             order.status === "pending" && 
@@ -60,7 +60,6 @@ export default function AdminPage() {
       const reservationsRes = await fetch("/api/reservations");
       const reservationsData = await reservationsRes.json();
       if (reservationsData.success) {
-        // ✅ FIX: Only add to newReservations if truly new AND pending
         reservationsData.reservations?.forEach((res: any) => {
           if (
             res.status === "pending" && 
@@ -74,6 +73,13 @@ export default function AdminPage() {
         setReservations(reservationsData.reservations || []);
       }
 
+      // Fetch ratings
+      const ratingsRes = await fetch("/api/ratings");
+      const ratingsData = await ratingsRes.json();
+      if (ratingsData.success) {
+        setRatings(ratingsData.ratings || []);
+      }
+
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -81,7 +87,6 @@ export default function AdminPage() {
     setLastRefresh(new Date());
   };
 
-  // Clear notifications when switching tabs
   useEffect(() => {
     if (activeTab === "orders") {
       setNewOrders([]);
@@ -126,6 +131,15 @@ export default function AdminPage() {
     }
   };
 
+  const deleteRating = async (id: string) => {
+    if (confirm("Are you sure you want to delete this rating?")) {
+      await fetch(`/api/ratings/${id}`, {
+        method: "DELETE",
+      });
+      fetchAllData();
+    }
+  };
+
   const clearCompleted = async () => {
     if (confirm("Clear all completed orders?")) {
       await fetch("/api/orders/clear-completed", {
@@ -143,16 +157,20 @@ export default function AdminPage() {
     }
   }, [autoRefresh]);
 
-  // Order calculations
   const pendingOrders = orders.filter((o: any) => o.status === "pending");
   const preparingOrders = orders.filter((o: any) => o.status === "preparing");
   const readyOrders = orders.filter((o: any) => o.status === "ready");
   const completedOrders = orders.filter((o: any) => o.status === "completed");
 
-  // Reservation calculations
   const pendingReservations = reservations.filter((r: any) => r.status === "pending");
   const confirmedReservations = reservations.filter((r: any) => r.status === "confirmed");
   const cancelledReservations = reservations.filter((r: any) => r.status === "cancelled");
+
+  const positiveRatings = ratings.filter((r: any) => r.rating >= 4).length;
+  const negativeRatings = ratings.filter((r: any) => r.rating <= 2).length;
+  const averageRating = ratings.length > 0 
+    ? (ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length).toFixed(1)
+    : "0.0";
 
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('en-US', {
@@ -170,7 +188,6 @@ export default function AdminPage() {
     });
   };
 
-  // Sort orders: pending first, then by creation time (newest first)
   const sortedOrders = [...orders].sort((a, b) => {
     if (a.status === "pending" && b.status !== "pending") return -1;
     if (a.status !== "pending" && b.status === "pending") return 1;
@@ -187,7 +204,6 @@ export default function AdminPage() {
             <p className="text-neutral-400">Manage orders, reservations, and customer reviews</p>
           </div>
           <div className="flex items-center gap-4">
-            {/* ✅ LOGOUT BUTTON ADDED HERE */}
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -278,20 +294,16 @@ export default function AdminPage() {
               </Badge>
             )}
           </button>
-         <button
-          onClick={() => setActiveTab("ratings")}
-          className={`pb-4 px-6 font-semibold transition-all flex items-center ${
-            activeTab === "ratings"
-              ? "text-amber-500 border-b-2 border-amber-500"
-              : "text-neutral-400 hover:text-white"
-          }`}
-        >
-          ⭐ Ratings
-        </button>
-
-
-
-
+          <button
+            onClick={() => setActiveTab("ratings")}
+            className={`pb-4 px-6 font-semibold transition-all flex items-center ${
+              activeTab === "ratings"
+                ? "text-amber-500 border-b-2 border-amber-500"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            ⭐ Ratings
+          </button>
         </div>
 
         {/* ORDERS TAB */}
@@ -348,7 +360,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* All Orders in Horizontal Grid */}
+            {/* All Orders */}
             {sortedOrders.length > 0 ? (
               <div>
                 <h2 className="text-2xl font-bold text-white mb-6">
@@ -724,6 +736,181 @@ export default function AdminPage() {
               <div className="text-center py-20">
                 <Users className="h-16 w-16 text-neutral-600 mx-auto mb-4" />
                 <p className="text-neutral-400 text-xl">No reservations yet</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* RATINGS TAB */}
+        {activeTab === "ratings" && (
+          <>
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-amber-950 border-2 border-amber-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-amber-400">
+                  {ratings.length}
+                </div>
+                <div className="text-amber-300 mt-2 font-semibold">
+                  ⭐ Total Ratings
+                </div>
+                <div className="text-amber-400/70 text-xs mt-1">
+                  Customer feedback
+                </div>
+              </div>
+
+              <div className="bg-green-950 border-2 border-green-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-green-400">
+                  {positiveRatings}
+                </div>
+                <div className="text-green-300 mt-2 font-semibold">
+                  👍 Positive (4+ stars)
+                </div>
+                <div className="text-green-400/70 text-xs mt-1">
+                  Great experiences
+                </div>
+              </div>
+
+              <div className="bg-red-950 border-2 border-red-600 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-red-400">
+                  {negativeRatings}
+                </div>
+                <div className="text-red-300 mt-2 font-semibold">
+                  👎 Needs Improvement
+                </div>
+                <div className="text-red-400/70 text-xs mt-1">
+                  Ratings 2 stars or less
+                </div>
+              </div>
+            </div>
+
+            {/* Average Rating */}
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-white">Average Rating</h3>
+                  <p className="text-neutral-400">Based on {ratings.length} customer ratings</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-5xl font-bold text-amber-400">
+                    {averageRating}
+                  </div>
+                  <div className="flex mt-2 justify-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span 
+                        key={star} 
+                        className="text-2xl text-amber-500"
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All Ratings */}
+            {ratings.length > 0 ? (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">
+                  All Customer Ratings ({ratings.length})
+                </h2>
+                <div className="space-y-6">
+                  {ratings.map((rating: any) => (
+                    <div 
+                      key={rating.id} 
+                      className="border border-neutral-700 rounded-lg bg-neutral-900 text-white p-6"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold">
+                            Order #{rating.orderId?.slice(-6).toUpperCase() || 'N/A'}
+                          </h3>
+                          <p className="text-sm text-neutral-400 mt-1">
+                            Rated on {new Date(rating.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="flex mr-3">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span 
+                                key={star} 
+                                className={`text-2xl ${star <= rating.rating ? 'text-yellow-500' : 'text-neutral-600'}`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-2xl font-bold text-white">
+                            {rating.rating}.0
+                          </span>
+                        </div>
+                      </div>
+
+                      {rating.feedback && rating.feedback.trim() !== "" && (
+                        <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
+                          <p className="text-neutral-300 italic">"{rating.feedback}"</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-700">
+                                                           
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs text-black hover:text-black" // ← ADD THIS
+                          onClick={() => {
+                            const order = orders.find((o: any) => o.id === rating.orderId);
+                            if (order) {
+                              const itemsList = order.items.map((item: any, i: number) => 
+                                `${i+1}. ${item.name} × ${item.qty} = BDT ${(item.price * item.qty).toFixed(2)}`
+                              ).join('\n');
+                              
+                              const alertMessage = 
+                                `📋 ORDER #${order.id.slice(-6).toUpperCase()}\n` +
+                                `👤 Customer: ${order.customerName}\n` +
+                                `📧 Email: ${order.customerEmail}\n` +
+                                `📱 Phone: ${order.customerPhone}\n` +
+                                `📍 Address: ${order.deliveryAddress}\n` +
+                                `📅 Date: ${new Date(order.createdAt).toLocaleString()}\n` +
+                                `📦 Status: ${order.status}\n` +
+                                `💳 Payment: ${order.paymentMethod}\n\n` +
+                                `🍽️ ORDER ITEMS:\n${itemsList}\n\n` +
+                                `💰 TOTAL: BDT ${order.total.toFixed(2)}\n`;
+                              
+                              alert(alertMessage);
+                            } else {
+                              alert("Order details not found");
+                            }
+                          }}
+                        >
+                          View Order
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => deleteRating(rating.id)}
+                        >
+                          Delete Rating
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">⭐</div>
+                <p className="text-neutral-400 text-xl">No ratings yet</p>
+                <p className="text-neutral-500 mt-2">
+                  Customer ratings will appear here after they rate their orders
+                </p>
               </div>
             )}
           </>

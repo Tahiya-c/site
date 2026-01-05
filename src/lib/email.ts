@@ -44,7 +44,7 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
   
   try {
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'Club Grille <onboarding@resend.dev>',
       to: order.customerEmail,
       subject: 'Order Confirmed! - Club Grille',
       html: `
@@ -203,95 +203,273 @@ export async function sendOrderCompletionEmail(order: OrderData) {
         <html>
         <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .logo { font-size: 24px; font-weight: bold; color: #ff6b35; }
-            .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
-            .success-badge { background: #4CAF50; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; margin: 20px 0; }
-            .order-box { background: #fff9f5; border: 2px solid #ff6b35; padding: 20px; margin: 20px 0; border-radius: 8px; }
-            .order-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-            .order-item:last-child { border-bottom: none; }
-            .item-name { font-weight: 500; color: #333; }
-            .item-qty { color: #666; font-size: 14px; }
-            .item-price { font-weight: bold; color: #ff6b35; }
-            .total-row { display: flex; justify-between; padding: 20px 0 0 0; margin-top: 15px; border-top: 2px solid #ff6b35; font-size: 18px; font-weight: bold; }
-            .rating-box { background: #fff3e0; border: 2px solid #ff6b35; padding: 25px; margin: 20px 0; border-radius: 8px; text-align: center; }
-            .rating-btn { display: inline-block; background: #ff6b35; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin: 5px; }
-            .cta-btn { display: inline-block; background: #4CAF50; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; margin-top: 15px; }
-            .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+            body { 
+              font-family: 'Arial', sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              margin: 0;
+              padding: 0;
+              background-color: #f8f9fa;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background: white;
+            }
+            .header { 
+              background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+              color: white; 
+              padding: 40px 30px; 
+              text-align: center; 
+            }
+            .logo { 
+              font-size: 28px; 
+              font-weight: bold; 
+              color: #ff6b35; 
+              margin-bottom: 10px;
+            }
+            .content { 
+              padding: 40px 30px; 
+            }
+            .success-badge { 
+              background: #4CAF50; 
+              color: white; 
+              padding: 12px 25px; 
+              border-radius: 25px; 
+              display: inline-block; 
+              margin: 0 auto 25px;
+              font-weight: bold;
+              text-align: center;
+            }
+            .order-box { 
+              background: #fff9f5; 
+              border: 2px solid #ff6b35; 
+              padding: 25px; 
+              margin: 25px 0; 
+              border-radius: 10px;
+              max-width: 500px;
+              margin-left: auto;
+              margin-right: auto;
+            }
+            .order-item { 
+              display: flex; 
+              justify-content: space-between; 
+              padding: 12px 0; 
+              border-bottom: 1px solid #f0f0f0; 
+            }
+            .order-item:last-child { 
+              border-bottom: none; 
+            }
+            .item-name { 
+              font-weight: 500; 
+              color: #333; 
+            }
+            .item-qty { 
+              color: #666; 
+              font-size: 14px; 
+            }
+            .item-price { 
+              font-weight: bold; 
+              color: #ff6b35; 
+            }
+            .total-row { 
+              display: flex; 
+              justify-content: space-between; 
+              padding: 20px 0 0 0; 
+              margin-top: 15px; 
+              border-top: 2px solid #ff6b35; 
+              font-size: 18px; 
+              font-weight: bold; 
+            }
+            .rating-box { 
+              background: #fff3e0; 
+              border: 2px solid #ff6b35; 
+              padding: 30px; 
+              margin: 30px auto; 
+              border-radius: 10px; 
+              text-align: center;
+              max-width: 500px;
+            }
+            .stars-container {
+              margin: 25px 0;
+              display: flex;
+              justify-content: center;
+              gap: 10px;
+            }
+            .star-link {
+              font-size: 48px;
+              text-decoration: none;
+              color: #ddd;
+              transition: all 0.3s ease;
+              display: inline-block;
+            }
+            .star-link:hover {
+              color: #ff6b35;
+              transform: scale(1.2);
+            }
+            .rating-btn { 
+              display: inline-block; 
+              background: #ff6b35; 
+              color: white; 
+              text-decoration: none; 
+              padding: 14px 30px; 
+              border-radius: 8px; 
+              font-weight: bold; 
+              margin: 10px;
+              border: none;
+              cursor: pointer;
+              font-size: 16px;
+            }
+            .cta-btn { 
+              display: inline-block; 
+              background: #4CAF50; 
+              color: white; 
+              text-decoration: none; 
+              padding: 16px 35px; 
+              border-radius: 8px; 
+              font-weight: bold; 
+              margin-top: 20px;
+              border: none;
+              cursor: pointer;
+              font-size: 16px;
+            }
+            .footer { 
+              background: #1a1a1a; 
+              padding: 25px; 
+              text-align: center; 
+              font-size: 14px; 
+              color: #999;
+            }
+            .centered {
+              text-align: center;
+              margin: 0 auto;
+            }
+            h2, h3 {
+              text-align: center;
+            }
+            .highlight {
+              color: #ff6b35;
+              font-weight: bold;
+            }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
               <div class="logo">🔥 CLUB GRILLE</div>
-              <p style="margin: 10px 0 0 0; font-size: 14px;">Where Steaks Meet Style</p>
+              <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Where Steaks Meet Style</p>
             </div>
             
             <div class="content">
-              <div style="text-align: center;">
+              <div class="centered">
                 <div class="success-badge">🎉 ORDER COMPLETE</div>
               </div>
               
-              <h2 style="color: #ff6b35; text-align: center;">Thank You, ${order.customerName}!</h2>
+              <h2 style="color: #ff6b35; margin-bottom: 20px;">Thank You, <span class="highlight">${order.customerName}</span>!</h2>
               
-              <p>Your order has been successfully completed and delivered. We hope you enjoyed your meal from <strong>Club Grille</strong>!</p>
+              <p class="centered" style="font-size: 16px; max-width: 500px; margin: 0 auto 30px;">
+                Your order has been successfully completed and delivered. 
+                We hope you enjoyed your meal from <strong>Club Grille</strong>!
+              </p>
               
               <div class="order-box">
-                <h3 style="margin-top: 0; color: #ff6b35;">Order Summary</h3>
+                <h3 style="margin-top: 0; color: #ff6b35; margin-bottom: 20px;">📦 Order Summary</h3>
                 ${order.items.map(item => `
                   <div class="order-item">
                     <div>
                       <div class="item-name">${item.name}</div>
                       <div class="item-qty">Quantity: ${item.qty}</div>
                     </div>
-                    <div class="item-price">BDT ${item.price}</div>
+                    <div class="item-price">BDT ${(item.price * item.qty).toFixed(2)}</div>
                   </div>
                 `).join('')}
                 <div class="total-row">
                   <span>Total:</span>
-                  <span style="color: #ff6b35;">BDT ${order.total}</span>
+                  <span style="color: #ff6b35;">BDT ${order.total.toFixed(2)}</span>
                 </div>
               </div>
 
               <div class="rating-box">
-                <h3 style="color: #ff6b35; margin-top: 0; margin-bottom: 10px;">How was your experience?</h3>
-                <p style="margin-bottom: 20px; color: #666;">Rate your order with one click:</p>
-                <div style="font-size: 48px; letter-spacing: 8px; margin: 20px 0;">
-                  <a href="${ratingUrl}?rating=5" style="text-decoration: none; color: #fbbf24; transition: transform 0.2s;">⭐</a>
-                  <a href="${ratingUrl}?rating=4" style="text-decoration: none; color: #fbbf24; transition: transform 0.2s;">⭐</a>
-                  <a href="${ratingUrl}?rating=3" style="text-decoration: none; color: #fbbf24; transition: transform 0.2s;">⭐</a>
-                  <a href="${ratingUrl}?rating=2" style="text-decoration: none; color: #fbbf24; transition: transform 0.2s;">⭐</a>
-                  <a href="${ratingUrl}?rating=1" style="text-decoration: none; color: #fbbf24; transition: transform 0.2s;">⭐</a>
+                <h3 style="color: #ff6b35; margin-top: 0; margin-bottom: 15px;">⭐ How was your experience?</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 16px;">
+                  Rate your order with one click:
+                </p>
+                
+                <div class="stars-container">
+                  <a href="${ratingUrl}?rating=5" class="star-link" data-rating="5">★</a>
+                  <a href="${ratingUrl}?rating=4" class="star-link" data-rating="4">★</a>
+                  <a href="${ratingUrl}?rating=3" class="star-link" data-rating="3">★</a>
+                  <a href="${ratingUrl}?rating=2" class="star-link" data-rating="2">★</a>
+                  <a href="${ratingUrl}?rating=1" class="star-link" data-rating="1">★</a>
                 </div>
-                <p style="font-size: 13px; color: #888; margin-top: 15px;">Click a star to rate (5 = Excellent, 1 = Needs improvement)</p>
+                
+                <div style="margin-top: 20px;">
+                  <form action="/api/ratings" method="POST" id="rating-form">
+                    <input type="hidden" name="orderId" value="${order.id}">
+                    <input type="hidden" name="rating" id="rating-value" value="">
+                    <input type="hidden" name="feedback" value="">
+                    <button type="submit" class="rating-btn">Submit Rating</button>
+                  </form>
+                </div>
+                
+                <p style="font-size: 13px; color: #888; margin-top: 20px;">
+                  Click a star to rate (5 = Excellent, 1 = Needs improvement)
+                </p>
               </div>
 
-              <div style="text-align: center; margin: 30px 0;">
-                <p>Hungry again? We'd love to serve you!</p>
-                <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}" class="cta-btn">Order Again</a>
+              <div class="centered" style="margin: 40px 0;">
+                <p style="font-size: 16px; margin-bottom: 20px;">Hungry again? We'd love to serve you!</p>
+                <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}" class="cta-btn">🍽️ Order Again</a>
               </div>
 
-              <p style="margin-top: 30px;">
-                <strong>Contact Information:</strong><br>
-                📞 +880 1234-567890<br>
-                📧 info@clubgrille.com<br>
-                📍 Rahim's Plaza de CPDL, Chattogram, Bangladesh
-              </p>
+              <div class="centered" style="max-width: 500px; margin: 40px auto 0; padding-top: 30px; border-top: 1px solid #eee;">
+                <p style="margin: 0 0 10px 0;"><strong>📞 Contact Information</strong></p>
+                <p style="margin: 5px 0; font-size: 14px;">Phone: +880 1234-567890</p>
+                <p style="margin: 5px 0; font-size: 14px;">Email: info@clubgrille.com</p>
+                <p style="margin: 5px 0; font-size: 14px;">Location: Rahim's Plaza de CPDL, Chattogram, Bangladesh</p>
+              </div>
 
-              <p style="margin-top: 20px;">
+              <p class="centered" style="margin-top: 40px; font-size: 16px;">
                 Thank you for choosing Club Grille. We hope to serve you again soon!<br>
                 <strong>The Club Grille Team</strong>
               </p>
             </div>
 
             <div class="footer">
-              <p><strong>Opening Hours</strong></p>
-              <p style="margin: 5px 0;">Mon–Thu: 12PM – 11PM | Fri–Sun: 12PM – 12AM</p>
-              <p style="margin-top: 15px; font-size: 12px; color: #999;">© 2024 Club Grille. All rights reserved.</p>
+              <p style="margin: 0 0 10px 0;"><strong>🕒 Opening Hours</strong></p>
+              <p style="margin: 5px 0; font-size: 13px;">Mon–Thu: 12PM – 11PM | Fri–Sun: 12PM – 12AM</p>
+              <p style="margin-top: 20px; font-size: 12px; color: #777;">© ${new Date().getFullYear()} Club Grille. All rights reserved.</p>
             </div>
           </div>
+
+          <script>
+            // Add JavaScript to handle star clicks
+            document.addEventListener('DOMContentLoaded', function() {
+              const stars = document.querySelectorAll('.star-link');
+              const ratingInput = document.getElementById('rating-value');
+              const form = document.getElementById('rating-form');
+              
+              stars.forEach(star => {
+                star.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  const rating = this.getAttribute('data-rating');
+                  
+                  // Update hidden input
+                  ratingInput.value = rating;
+                  
+                  // Highlight selected stars
+                  stars.forEach(s => {
+                    s.style.color = s.getAttribute('data-rating') <= rating ? '#ff6b35' : '#ddd';
+                  });
+                  
+                  // Auto-submit form after 1 second
+                  setTimeout(() => {
+                    form.submit();
+                  }, 1000);
+                });
+              });
+            });
+          </script>
         </body>
         </html>
       `,
