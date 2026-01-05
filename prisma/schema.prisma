@@ -75,15 +75,6 @@ model Reservation {
 
 model Rating {
   id        String   @id @default(cuid())
-  orderId   String
-  rating    Int
-  feedback  String?
-  createdAt DateTime @default(now())
-  
-  @@index([orderId])
-}
-model Rating {
-  id        String   @id @default(cuid())
   orderId   String   @unique  // ADD @unique HERE
   rating    Int
   feedback  String?
