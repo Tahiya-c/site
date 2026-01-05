@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { Rating } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
@@ -42,15 +43,16 @@ export async function POST(request: Request) {
 // ✅ GET all ratings - show only latest rating per order
 export async function GET() {
   try {
-    // Get all ratings
+    // Get all ratings with proper typing
     const allRatings = await prisma.rating.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
     // Filter to show only the latest rating per order
-    const latestRatingsMap = new Map();
+    const latestRatingsMap = new Map<string, Rating>();
     
-    allRatings.forEach(rating => {
+    // Add explicit type annotation for the rating parameter
+    allRatings.forEach((rating: Rating) => {
       if (!latestRatingsMap.has(rating.orderId)) {
         latestRatingsMap.set(rating.orderId, rating);
       }
